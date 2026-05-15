@@ -16,7 +16,7 @@ def add_logo(ax):
     except:
         pass
 
-st.title("⚽ TootScouting | Unified Tactical Analysis")
+st.title("⚽ TootScouting | Tactical Analysis Master")
 
 uploaded_file = st.sidebar.file_uploader("Upload Actions CSV", type=['csv'])
 
@@ -37,18 +37,22 @@ if uploaded_file is not None:
 
     tab1, tab2 = st.tabs(["👤 Individual Analysis", "👥 Team Strategy Analysis"])
 
+    # --- تحديث دليل الرموز ليعكس الألوان الجديدة ---
     def get_legend_elements():
         return [
             mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success'),
             mlines.Line2D([], [], color='#e74c3c', marker='>', linestyle='-', label='Pass Failed'),
             mlines.Line2D([], [], color='blue', marker='>', linestyle='-', label='Cross Success'),
-            mlines.Line2D([], [], color='blue', marker='>', linestyle='--', label='Cross Failed'),
+            mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Cross Failed'),
+            mlines.Line2D([], [], color='orange', marker='>', linestyle='-', label='Corner Success'),
+            mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Corner Failed'),
             mlines.Line2D([], [], color='#FF69B4', label='Through Ball'),
             mlines.Line2D([], [], color='gold', marker='*', linestyle='None', markersize=12, label='Goal'),
-            mlines.Line2D([], [], color='#0000FF', marker='*', linestyle='None', label='On Target'),
         ]
 
-    # --- TAB 1: التحليل الفردي ---
+    # ---------------------------------------------------------
+    # TAB 1: التحليل الفردي
+    # ---------------------------------------------------------
     with tab1:
         player_list = sorted(team_df['Player'].dropna().unique().tolist())
         sel_player = st.selectbox("Select Player", player_list)
@@ -65,15 +69,22 @@ if uploaded_file is not None:
             is_success = 'success' in tag
             
             if 'pass' in act:
+                # الكروسات: أزرق للصح / أحمر متقطع للغلط
                 if 'cross' in tag:
+                    p_color = 'blue' if is_success else 'red'
+                    p_style = 'solid' if is_success else 'dashed'
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
-                                 width=2, color='blue', linestyle='solid' if is_success else 'dashed', ax=ax)
+                                 width=2, color=p_color, linestyle=p_style, ax=ax)
+                
+                # الكورنر: برتقالي للصح / أحمر متقطع للغلط
+                elif 'corner' in tag:
+                    p_color = 'orange' if is_success else 'red'
+                    p_style = 'solid' if is_success else 'dashed'
+                    pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
+                                 width=2, color=p_color, linestyle=p_style, ax=ax)
+                
                 elif 'through' in tag:
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax)
-                elif 'free kick' in tag:
-                    pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#40E0D0', ax=ax)
-                elif 'corner' in tag:
-                    pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange', ax=ax)
                 else:
                     p_col = '#2ecc71' if is_success else '#e74c3c'
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color=p_col, alpha=0.7, ax=ax)
@@ -88,7 +99,9 @@ if uploaded_file is not None:
         ax.legend(handles=get_legend_elements(), loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
         st.pyplot(fig)
 
-    # --- TAB 2: التحليل الجماعي ---
+    # ---------------------------------------------------------
+    # TAB 2: التحليل الجماعي
+    # ---------------------------------------------------------
     with tab2:
         st.subheader(f"Team Tactical Master: {selected_team}")
         team_options = st.multiselect("Tactical Layers", 
@@ -107,14 +120,17 @@ if uploaded_file is not None:
             act, tag = str(row['Action']).lower(), str(row['Tags']).lower()
             is_success = 'success' in tag
 
-            # تم إصلاح السطر المسبب للخطأ هنا
+            # الكروسات الجماعية
+            if "Crosses" in team_options and "cross" in tag:
+                p_color = 'blue' if is_success else 'red'
+                p_style = 'solid' if is_success else 'dashed'
+                pitch_t.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
+                               width=2, color=p_color, linestyle=p_style, ax=ax_t)
+
+            # التمريرات العادية
             if "Normal Passes" in team_options and "pass" in act and "cross" not in tag and "through" not in tag and "corner" not in tag:
                 p_col = '#2ecc71' if is_success else '#e74c3c'
                 pitch_t.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=1.5, color=p_col, alpha=0.3, ax=ax_t)
-
-            if "Crosses" in team_options and "cross" in tag:
-                pitch_t.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
-                               width=2, color='blue', linestyle='solid' if is_success else 'dashed', ax=ax_t)
 
             if "Through Balls" in team_options and "through" in tag:
                 pitch_t.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax_t)
@@ -130,4 +146,4 @@ if uploaded_file is not None:
         st.pyplot(fig_t)
 
 else:
-    st.info("👋 ارفع ملف الـ CSV.. دلوقتي الكروسات الناجحة هتظهر خط سليم، والفاشلة خط متقطع.")
+    st.info("👋 ارفع ملف الـ CSV.. دلوقتي الكروسات والرنيات الفاشلة باللون الأحمر المتقطع.")
