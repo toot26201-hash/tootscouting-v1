@@ -30,8 +30,9 @@ if uploaded_file is not None:
 
     # 2. فلتر نوع الإجراء (الالتحامات، الفاولات، الدريبل...)
     action_list = sorted(player_df['action'].unique().tolist())
-    selected_action = st.sidebar.multiselect("اختر نوع الإجراء (Actions)", action_list, default=["pass"])
-
+# الكود هيحاول يختار Pass لو موجودة، لو مش موجودة هيسيبها فاضية ومش هيطلع خطأ
+default_actions = [a for a in ["Pass", "pass"] if a in action_list]
+selected_action = st.sidebar.multiselect("اختر نوع الإجراء (Actions)", action_list, default=default_actions)
     # فلترة البيانات بناءً على الاختيارات
     filtered_df = player_df[player_df['action'].isin(selected_action)]
 
