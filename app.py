@@ -16,7 +16,7 @@ def add_logo(ax):
     except:
         pass
 
-st.title("⚽ TootScouting | Master Tactical Analysis")
+st.title("⚽ TootScouting | Total Performance Analysis")
 
 uploaded_file = st.sidebar.file_uploader("Upload Actions CSV", type=['csv'])
 
@@ -37,17 +37,17 @@ if uploaded_file is not None:
 
     tab1, tab2 = st.tabs(["👤 Individual Analysis", "👥 Team Strategy Analysis"])
 
-    # --- الدليل الشامل والثابت (Comprehensive Legend) ---
+    # --- الدليل الشامل (Updated with Defensive Actions) ---
     def get_full_legend():
         return [
             mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success'),
-            mlines.Line2D([], [], color='#e74c3c', marker='>', linestyle='-', label='Pass Failed'),
             mlines.Line2D([], [], color='blue', marker='>', linestyle='-', label='Cross Success'),
-            mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Cross/Corner Failed'),
-            mlines.Line2D([], [], color='orange', marker='>', linestyle='-', label='Corner Success'),
-            mlines.Line2D([], [], color='#FF69B4', linestyle='-', label='Through Ball'),
+            mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Failed Cross/Corner'),
+            mlines.Line2D([], [], color='#FF69B4', label='Through Ball'),
             mlines.Line2D([], [], color='gold', marker='*', linestyle='None', markersize=12, label='Goal'),
-            mlines.Line2D([], [], color='#0000FF', marker='*', linestyle='None', label='On Target'),
+            mlines.Line2D([], [], color='black', marker='x', linestyle='None', markersize=10, label='Interception/Block'),
+            mlines.Line2D([], [], color='brown', marker='s', linestyle='None', markersize=8, label='Tackle/Duel'),
+            mlines.Line2D([], [], color='purple', marker='d', linestyle='None', markersize=8, label='Clearance'),
             mlines.Line2D([], [], color='blue', alpha=0.2, marker='s', linestyle='None', markersize=10, label='Area 14')
         ]
 
@@ -70,6 +70,7 @@ if uploaded_file is not None:
             act, tag = str(row['Action']).lower(), str(row['Tags']).lower()
             is_success = 'success' in tag
             
+            # --- 1. التمريرات والهجوم ---
             if 'pass' in act:
                 if 'cross' in tag:
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
@@ -85,6 +86,15 @@ if uploaded_file is not None:
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
                                  width=2, color='#2ecc71' if is_success else '#e74c3c', alpha=0.7, ax=ax)
             
+            # --- 2. الإجراءات الدفاعية (New) ---
+            elif 'interception' in act or 'block' in act:
+                pitch.scatter(row.x_scaled, row.y_scaled, marker='x', s=200, color='black', ax=ax, zorder=4)
+            elif 'tackle' in act or 'duel' in act:
+                pitch.scatter(row.x_scaled, row.y_scaled, marker='s', s=150, color='brown' if is_success else 'red', ax=ax, zorder=4)
+            elif 'clearance' in act:
+                pitch.scatter(row.x_scaled, row.y_scaled, marker='d', s=150, color='purple', ax=ax, zorder=4)
+
+            # --- 3. التسديدات ---
             elif 'shot' in act or 'sh/a' in act:
                 if 'goal' in tag:
                     pitch.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
@@ -92,7 +102,6 @@ if uploaded_file is not None:
                     pitch.scatter(row.x_scaled, row.y_scaled, marker='*', s=450, 
                                   color='#0000FF' if 'on target' in tag else '#FF00FF', edgecolors='black', ax=ax, zorder=5)
         
-        # إضافة الدليل الشامل للفردي
         ax.legend(handles=get_full_legend(), loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
         st.pyplot(fig)
 
@@ -102,8 +111,8 @@ if uploaded_file is not None:
     with tab2:
         st.subheader(f"Team Tactical Master: {selected_team}")
         team_options = st.multiselect("Tactical Layers", 
-            ["Normal Passes", "Crosses", "Through Balls", "Goals/Shots", "Area 14 Hub"], 
-            default=["Normal Passes", "Crosses", "Goals/Shots"])
+            ["Normal Passes", "Crosses", "Defensive Actions", "Goals/Shots", "Area 14 Hub"], 
+            default=["Normal Passes", "Defensive Actions", "Goals/Shots"])
         
         pitch_t = Pitch(pitch_type='statsbomb', pitch_color='white', line_color='#22312b', linestyle='--')
         fig_t, ax_t = pitch_t.draw(figsize=(12, 9))
@@ -117,28 +126,29 @@ if uploaded_file is not None:
             act, tag = str(row['Action']).lower(), str(row['Tags']).lower()
             is_success = 'success' in tag
 
+            # الرسوم الدفاعية الجماعية
+            if "Defensive Actions" in team_options:
+                if 'interception' in act or 'block' in act:
+                    pitch_t.scatter(row.x_scaled, row.y_scaled, marker='x', s=150, color='black', ax=ax_t)
+                elif 'tackle' in act:
+                    pitch_t.scatter(row.x_scaled, row.y_scaled, marker='s', s=120, color='brown' if is_success else 'red', ax=ax_t)
+
             if "Crosses" in team_options and "cross" in tag:
                 pitch_t.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
-                               width=2, color='blue' if is_success else 'red', 
-                               linestyle='solid' if is_success else 'dashed', ax=ax_t)
+                               width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax_t)
 
             if "Normal Passes" in team_options and "pass" in act and "cross" not in tag and "through" not in tag:
                 pitch_t.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
                                width=1.5, color='#2ecc71' if is_success else '#e74c3c', alpha=0.3, ax=ax_t)
 
-            if "Through Balls" in team_options and "through" in tag:
-                pitch_t.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax_t)
-
             if "Goals/Shots" in team_options:
                 if "goal" in tag:
                     pitch_t.scatter(row.x_scaled, row.y_scaled, marker='*', s=800, color='gold', edgecolors='black', ax=ax_t, zorder=6)
                 elif "shot" in act or "sh/a" in act:
-                    pitch_t.scatter(row.x_scaled, row.y_scaled, marker='*', s=350, 
-                                    color='#0000FF' if 'on target' in tag else '#FF00FF', ax=ax_t, zorder=5)
+                    pitch_t.scatter(row.x_scaled, row.y_scaled, marker='*', s=350, color='#0000FF' if 'on target' in tag else '#FF00FF', ax=ax_t)
 
-        # إضافة الدليل الشامل للجماعي
         ax_t.legend(handles=get_full_legend(), loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
         st.pyplot(fig_t)
 
 else:
-    st.info("👋 ارفع ملف الـ CSV.. دلوقتي الدليل ثابت فيه كل الرموز عشان الصورة تكون واضحة للمدرب!")
+    st.info("👋 ارفع ملف الـ CSV.. التحليل الدفاعي (التاكل، الإنترسبشن، البلوك) بقى جاهز!")
