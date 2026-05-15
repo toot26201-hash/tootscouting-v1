@@ -37,7 +37,7 @@ if uploaded_file is not None:
 
     tab1, tab2 = st.tabs(["👤 Individual Analysis", "👥 Team Strategy Analysis"])
 
-    # --- دليل الرموز الشامل (بناءً على تعليماتك الأخيرة) ---
+    # --- دليل الرموز الشامل (تم إصلاح رموز الـ Legend هنا) ---
     def get_full_legend():
         return [
             mlines.Line2D([], [], color='#2ecc71', marker='>', label='Pass Success'),
@@ -47,8 +47,9 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='#2ecc71', marker='^', linestyle='None', label='Aerial Won'),
             mlines.Line2D([], [], color='red', marker='^', linestyle='None', label='Aerial Lost'),
             mlines.Line2D([], [], color='red', marker='s', linestyle='None', label='Ground Duel (All)'),
-            mlines.Line2D([], [], color='black', marker='X', linestyle='None', label='Foul (Red X)'),
-            mlines.Line2D([], [], color='black', marker='$#$', linestyle='None', label='Counterpress (#)'),
+            mlines.Line2D([], [], color='red', marker='x', linestyle='None', markersize=10, label='Foul (Red X)'),
+            # تم تغيير طريقة رسم الشباك في الدليل لتجنب الخطأ
+            mlines.Line2D([], [], color='black', marker=(4, 0, 45), linestyle='None', label='Counterpress (#)'),
             mlines.Line2D([], [], color='gold', marker='*', linestyle='None', markersize=12, label='Goal'),
         ]
 
@@ -79,14 +80,15 @@ if uploaded_file is not None:
                 else:
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', alpha=0.7, ax=ax)
             
-            # 2. الإجراءات الدفاعية (الرموز الجديدة)
+            # 2. الإجراءات الدفاعية
             elif 'aerial' in act:
                 pitch.scatter(row.x_scaled, row.y_scaled, marker='^', s=250, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax)
             elif 'tackle' in act or 'duel' in act:
-                pitch.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='red', ax=ax) # أرضي أحمر دايماً
+                pitch.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='red', ax=ax)
             elif 'foul' in act:
                 pitch.scatter(row.x_scaled, row.y_scaled, marker='x', s=250, color='red', linewidth=3, ax=ax)
             elif 'counter' in act or 'press' in act:
+                # رسم الشباك كنص في الملعب يظل كما هو لأنه مستقر
                 ax.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=20, fontweight='bold', ha='center', va='center')
 
             # 3. الأهداف
@@ -102,7 +104,7 @@ if uploaded_file is not None:
     # ---------------------------------------------------------
     with tab2:
         st.subheader(f"Team Tactical Master: {selected_team}")
-        team_options = st.multiselect("Tactical Layers", ["Passes", "Defensive Actions", "Goals/Shots", "Area 14 Hub"], default=["Passes", "Defensive Actions"])
+        team_options = st.multiselect("Tactical Layers", ["Passes", "Defensive Actions", "Goals/Shots"], default=["Passes", "Defensive Actions"])
         
         pitch_t = Pitch(pitch_type='statsbomb', pitch_color='white', line_color='#22312b', linestyle='--')
         fig_t, ax_t = pitch_t.draw(figsize=(12, 9))
@@ -119,6 +121,8 @@ if uploaded_file is not None:
                     pitch_t.scatter(row.x_scaled, row.y_scaled, marker='s', s=120, color='red', ax=ax_t)
                 elif 'foul' in act:
                     pitch_t.scatter(row.x_scaled, row.y_scaled, marker='x', s=180, color='red', ax=ax_t)
+                elif 'counter' in act or 'press' in act:
+                    ax_t.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=15, ha='center', va='center')
 
         ax_t.legend(handles=get_full_legend(), loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
         st.pyplot(fig_t)
