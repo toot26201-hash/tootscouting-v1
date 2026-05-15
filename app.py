@@ -16,7 +16,7 @@ def add_logo(ax):
     except:
         pass
 
-st.title("⚽ TootScouting | Dynamic Tactical Analysis")
+st.title("⚽ TootScouting | Master Tactical Analysis")
 
 uploaded_file = st.sidebar.file_uploader("Upload Actions CSV", type=['csv'])
 
@@ -37,38 +37,19 @@ if uploaded_file is not None:
 
     tab1, tab2 = st.tabs(["👤 Individual Analysis", "👥 Team Strategy Analysis"])
 
-    # --- دالة الدليل الديناميكي ---
-    def get_dynamic_legend(active_options):
-        legend_map = {
-            'Normal Passes': [
-                mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success'),
-                mlines.Line2D([], [], color='#e74c3c', marker='>', linestyle='-', label='Pass Failed')
-            ],
-            'Crosses': [
-                mlines.Line2D([], [], color='blue', marker='>', linestyle='-', label='Cross Success'),
-                mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Cross Failed')
-            ],
-            'Through Balls': [
-                mlines.Line2D([], [], color='#FF69B4', linestyle='-', label='Through Ball')
-            ],
-            'Goals/Shots': [
-                mlines.Line2D([], [], color='gold', marker='*', linestyle='None', markersize=12, label='Goal'),
-                mlines.Line2D([], [], color='#0000FF', marker='*', linestyle='None', label='On Target')
-            ],
-            'Area 14 Hub': [
-                mlines.Line2D([], [], color='blue', alpha=0.2, marker='s', linestyle='None', markersize=10, label='Area 14')
-            ],
-            'Corner': [ # للفردي
-                mlines.Line2D([], [], color='orange', marker='>', linestyle='-', label='Corner Success'),
-                mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Corner Failed')
-            ]
-        }
-        
-        elements = []
-        for opt in active_options:
-            if opt in legend_map:
-                elements.extend(legend_map[opt])
-        return elements
+    # --- الدليل الشامل والثابت (Comprehensive Legend) ---
+    def get_full_legend():
+        return [
+            mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success'),
+            mlines.Line2D([], [], color='#e74c3c', marker='>', linestyle='-', label='Pass Failed'),
+            mlines.Line2D([], [], color='blue', marker='>', linestyle='-', label='Cross Success'),
+            mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Cross/Corner Failed'),
+            mlines.Line2D([], [], color='orange', marker='>', linestyle='-', label='Corner Success'),
+            mlines.Line2D([], [], color='#FF69B4', linestyle='-', label='Through Ball'),
+            mlines.Line2D([], [], color='gold', marker='*', linestyle='None', markersize=12, label='Goal'),
+            mlines.Line2D([], [], color='#0000FF', marker='*', linestyle='None', label='On Target'),
+            mlines.Line2D([], [], color='blue', alpha=0.2, marker='s', linestyle='None', markersize=10, label='Area 14')
+        ]
 
     # ---------------------------------------------------------
     # TAB 1: التحليل الفردي
@@ -78,9 +59,7 @@ if uploaded_file is not None:
         sel_player = st.selectbox("Select Player", player_list)
         p_df = team_df[team_df['Player'] == sel_player].copy()
         
-        # تحويل أنواع الأكشن لمسميات الدليل
-        available_p_actions = sorted(p_df['Action'].unique().tolist())
-        p_actions = st.multiselect("Player Visuals", available_p_actions, default=available_p_actions)
+        p_actions = st.multiselect("Player Visuals", sorted(p_df['Action'].unique().tolist()), default=sorted(p_df['Action'].unique().tolist()))
         p_filt = p_df[p_df['Action'].isin(p_actions)]
 
         pitch = Pitch(pitch_type='statsbomb', pitch_color='white', line_color='#22312b', linestyle='--')
@@ -113,16 +92,8 @@ if uploaded_file is not None:
                     pitch.scatter(row.x_scaled, row.y_scaled, marker='*', s=450, 
                                   color='#0000FF' if 'on target' in tag else '#FF00FF', edgecolors='black', ax=ax, zorder=5)
         
-        # الدليل الديناميكي للفردي
-        active_p_options = ['Normal Passes', 'Goals/Shots']
-        if any('cross' in str(a).lower() for a in p_actions): active_p_options.append('Crosses')
-        if any('corner' in str(a).lower() for a in p_actions): active_p_options.append('Corner')
-        if any('through' in str(a).lower() for a in p_actions): active_p_options.append('Through Balls')
-        
-        leg_p = get_dynamic_legend(active_p_options)
-        if leg_p:
-            ax.legend(handles=leg_p, loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
-        
+        # إضافة الدليل الشامل للفردي
+        ax.legend(handles=get_full_legend(), loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
         st.pyplot(fig)
 
     # ---------------------------------------------------------
@@ -165,12 +136,9 @@ if uploaded_file is not None:
                     pitch_t.scatter(row.x_scaled, row.y_scaled, marker='*', s=350, 
                                     color='#0000FF' if 'on target' in tag else '#FF00FF', ax=ax_t, zorder=5)
 
-        # الدليل الديناميكي للجماعي
-        leg_t = get_dynamic_legend(team_options)
-        if leg_t:
-            ax_t.legend(handles=leg_t, loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
-            
+        # إضافة الدليل الشامل للجماعي
+        ax_t.legend(handles=get_full_legend(), loc='upper right', bbox_to_anchor=(1, 1), fontsize='x-small', facecolor='white', framealpha=0.9)
         st.pyplot(fig_t)
 
 else:
-    st.info("👋 ارفع ملف الـ CSV.. الدليل دلوقتي هيتغير حسب اللي أنت مختاره بالظبط!")
+    st.info("👋 ارفع ملف الـ CSV.. دلوقتي الدليل ثابت فيه كل الرموز عشان الصورة تكون واضحة للمدرب!")
