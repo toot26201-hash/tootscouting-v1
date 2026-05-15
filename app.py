@@ -17,7 +17,7 @@ st.title("🌍 TootScouting | منصة تحليل الأداء العالمية"
 st.sidebar.header("لوحة التحكم")
 
 # 2. ميزة رفع الملفات (عشان تشتغل على أي دوري)
-uploaded_file = st.sidebar.file_opener("ارفع ملف Summary (CSV)", type=['csv'])
+uploaded_file = st.sidebar.file_uploader("ارفع ملف Summary (CSV)", type=['csv'])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
