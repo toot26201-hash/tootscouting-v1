@@ -3,9 +3,9 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 
-st.set_page_config(page_title="TootScouting Professional", layout="wide")
+st.set_page_config(page_title="TootScouting Tactical Pro", layout="wide")
 
-st.title("⚽ TootScouting | Custom Tactical Analysis")
+st.title("⚽ TootScouting | Elite Tactical Analysis")
 
 uploaded_file = st.sidebar.file_uploader("Upload Actions CSV", type=['csv'])
 
@@ -13,7 +13,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
-    # Scaling to StatsBomb dimensions
+    # Scaling coordinates to StatsBomb dimensions (120x80)
     if 'X start' in df.columns:
         df['x_scaled'] = df['X start'] * 120
         df['y_scaled'] = df['Y start'] * 80
@@ -26,14 +26,14 @@ if uploaded_file is not None:
     player_df = df[df['Player'] == selected_player].copy()
 
     action_list = sorted(player_df['Action'].dropna().unique().tolist())
-    selected_actions = st.sidebar.multiselect("Select Actions to Display", action_list, default=action_list[:3])
+    selected_actions = st.sidebar.multiselect("Select Actions to Display", action_list, default=action_list)
 
     filtered_df = player_df[player_df['Action'].isin(selected_actions)]
 
-    tab1, tab2 = st.tabs(["📊 Table View", "🏟️ Professional Pitch"])
+    tab1, tab2 = st.tabs(["📊 Data Table", "🏟️ Tactical Pitch"])
 
     with tab1:
-        st.subheader(f"Data for: {selected_player}")
+        st.subheader(f"Detailed Stats for: {selected_player}")
         st.dataframe(filtered_df)
 
     with tab2:
@@ -42,39 +42,46 @@ if uploaded_file is not None:
         fig, ax = pitch.draw(figsize=(12, 8))
 
         for i, row in filtered_df.iterrows():
-            # Determine Color
-            is_success = 'success' in str(row['Tags']).lower()
+            tag_str = str(row['Tags']).lower()
+            is_success = 'success' in tag_str or 'on target' in tag_str
             color = '#2ecc71' if is_success else '#e74c3c'
             
             action = str(row['Action']).lower()
 
-            # 1. Pass (Arrows)
+            # 1. Passes (Solid Arrows)
             if 'pass' in action:
                 if pd.notnull(row['x_end_scaled']):
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
                                  width=2, color=color, ax=ax, alpha=0.6)
 
-            # 2. Aerial Duels (Triangle)
+            # 2. Shots (Star Symbol ⭐)
+            elif 'shot' in action or 'sh/a' in action:
+                # Blue for On Target, Fuchsia for Off Target
+                shot_color = '#0000FF' if 'on target' in tag_str else '#FF00FF'
+                pitch.scatter(row.x_scaled, row.y_scaled, marker='*', s=350, 
+                              color=shot_color, edgecolors='black', ax=ax, zorder=3)
+
+            # 3. Aerial Duels (Triangle ▲)
             elif 'aerial' in action:
                 pitch.scatter(row.x_scaled, row.y_scaled, marker='^', s=200, 
                               color=color, edgecolors='black', ax=ax)
 
-            # 3. Ground Duels (Square)
+            # 4. Ground Duels/Tackles (Square ■)
             elif 'duel' in action or 'tackle' in action:
                 pitch.scatter(row.x_scaled, row.y_scaled, marker='s', s=180, 
                               color=color, edgecolors='black', ax=ax)
 
-            # 4. Extractions/Interceptions (X - الصدادة)
+            # 5. Interceptions/Extractions (X - Cross)
             elif 'extraction' in action or 'interception' in action:
                 pitch.scatter(row.x_scaled, row.y_scaled, marker='x', s=200, 
                               linewidth=3, color=color, ax=ax)
 
-            # 5. Dribble (Hollow Circle - الدائرة المفرغة)
+            # 6. Dribbles (Hollow Circle ○)
             elif 'dribble' in action:
                 pitch.scatter(row.x_scaled, row.y_scaled, marker='o', s=180, 
                               facecolors='none', edgecolors=color, linewidth=2, ax=ax)
 
-            # 6. Ball Carry (Yellow Dashed Arrow)
+            # 7. Ball Carries (Yellow Dashed Arrow)
             elif 'carry' in action or 'run' in action:
                 if pd.notnull(row['x_end_scaled']):
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
@@ -82,16 +89,28 @@ if uploaded_file is not None:
 
         st.pyplot(fig)
         
-        # English Legend
+        # Comprehensive English Legend with Icons & Colors
         st.markdown("""
-        ### **Tactical Key (English):**
-        * ▲ **Triangle:** Aerial Duel (Green: Win / Red: Loss)
-        * ■ **Square:** Ground Duel / Tackle (Green: Win / Red: Loss)
-        * **X (Cross):** Interception / Extraction
-        * ○ **Hollow Circle:** Dribble
-        * **--- > (Yellow Dashed):** Ball Carry
-        * **Solid Arrow:** Pass (Green: Success / Red: Failed)
-        """)
+        ### **Tactical Map Legend:**
+        ---
+        #### **Shooting:**
+        * ⭐ <span style='color:#0000FF'>**Blue Star:**</span> Shot ON Target
+        * ⭐ <span style='color:#FF00FF'>**Fuchsia Star:**</span> Shot OFF Target
+        
+        #### **Passing & Movement:**
+        * 🟢 **Green Arrow:** Successful Pass
+        * 🔴 **Red Arrow:** Failed Pass
+        * 🟡 **Yellow Dashed Arrow:** Ball Carry / Run
+        
+        #### **Defensive & Duels:**
+        * ▲ **Triangle:** Aerial Duel (Green: Won / Red: Lost)
+        * ■ **Square:** Ground Duel or Tackle (Green: Won / Red: Lost)
+        * ✖ **Cross (X):** Interception or Extraction
+        
+        #### **Technical Actions:**
+        * ○ **Hollow Circle:** Dribble (Green: Success / Red: Failed)
+        ---
+        """, unsafe_allow_html=True)
 
 else:
-    st.info("👋 Upload the CSV file to generate the professional report.")
+    st.info("👋 Welcome! Please upload the actions CSV file to generate your professional tactical report.")
