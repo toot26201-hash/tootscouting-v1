@@ -13,7 +13,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
-    # Scale coordinates to StatsBomb dimensions (120x80)
+    # Scale coordinates (120x80)
     if 'X start' in df.columns:
         df['x_scaled'] = df['X start'] * 120
         df['y_scaled'] = df['Y start'] * 80
@@ -22,12 +22,10 @@ if uploaded_file is not None:
 
     st.sidebar.header("Filter Dashboard")
     
-    # 1. Player Filter
     player_list = sorted(df['Player'].dropna().unique().tolist())
     selected_player = st.sidebar.selectbox("Select Player", player_list)
     player_df = df[df['Player'] == selected_player].copy()
 
-    # 2. Action Filter
     action_list = sorted(player_df['Action'].dropna().unique().tolist())
     default_val = [a for a in ["Pass"] if a in action_list]
     selected_actions = st.sidebar.multiselect("Select Event Types", action_list, default=default_val)
@@ -41,31 +39,31 @@ if uploaded_file is not None:
         st.dataframe(filtered_df)
 
     with tab2:
-        # WHITE PITCH with dashed lines
+        # White pitch with dashed lines
         pitch = Pitch(pitch_type='statsbomb', pitch_color='white', line_color='#22312b', 
                       linestyle='--', linewidth=1, goal_linestyle='-')
         fig, ax = pitch.draw(figsize=(12, 8))
 
-        # Define Marker styles for different actions
-        # (Pass uses arrows, others use markers)
+        # Dictionary for Action Markers
         marker_map = {
             'Aerial': 'o',      # Circle
             'Dribble': 's',     # Square
             'Tackle': 'X',      # Cross
             'Foul': 'P',        # Plus
             'Interception': 'D', # Diamond
-            'Pressing': '^'     # Triangle
+            'pressing': '^',    # Triangle
+            'extraction': 'H'   # Hexagon
         }
 
-        # 1. Plot PASSES as Arrows
+        # 1. Plot PASSES as Arrows (Green for Success, Red for Failed)
         passes = filtered_df[filtered_df['Action'].str.contains('Pass', case=False, na=False)]
         for i, row in passes.iterrows():
             if pd.notnull(row['x_end_scaled']):
-                color = '#2ecc71' if 'success' in str(row['Tags']).lower() else '#e74c3c' # Green/Red
+                color = '#2ecc71' if 'success' in str(row['Tags']).lower() else '#e74c3c'
                 pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
                              width=2, headwidth=3, headlength=3, color=color, ax=ax, alpha=0.7)
 
-        # 2. Plot OTHER ACTIONS with different markers
+        # 2. Plot OTHER ACTIONS with unique markers AND dynamic colors (Green/Red)
         others = filtered_df[~filtered_df['Action'].str.contains('Pass', case=False, na=False)]
         
         for action in selected_actions:
@@ -73,23 +71,24 @@ if uploaded_file is not None:
             
             action_data = others[others['Action'] == action]
             if not action_data.empty:
-                marker = marker_map.get(action, 'o') # Use circle as default if action not in map
-                pitch.scatter(action_data.x_scaled, action_data.y_scaled, s=150, 
-                              edgecolors='black', facecolors='#3498db', marker=marker, 
-                              ax=ax, label=action)
-
-        if len(selected_actions) > 1 or 'Pass' not in selected_actions:
-            ax.legend(facecolor='white', handlelength=2, edgecolor='black', fontsize=10, loc='upper left')
+                marker = marker_map.get(action, 'o')
+                for i, row in action_data.iterrows():
+                    # Check success/failure for each individual action
+                    color = '#2ecc71' if 'success' in str(row['Tags']).lower() else '#e74c3c'
+                    pitch.scatter(row.x_scaled, row.y_scaled, s=180, 
+                                  edgecolors='black', facecolors=color, marker=marker, 
+                                  ax=ax, alpha=0.9)
 
         st.pyplot(fig)
         
-        # Legend Description in English
+        # Legend
         st.markdown("""
-        ### **Legend Key:**
-        * **Green Arrow:** Successful Pass
-        * **Red Arrow:** Failed Pass
-        * **Markers:** Represents different event types (see legend on pitch)
-        """)
+        ### **Legend & Color Code:**
+        * <span style='color:#2ecc71'>■</span> **Green:** Successful Action
+        * <span style='color:#e74c3c'>■</span> **Red:** Failed Action
+        * **Arrows:** Passing direction
+        * **Shapes:** Different markers for Aerial, Dribble, Tackle, etc.
+        """, unsafe_allow_html=True)
 
 else:
-    st.info("👋 Please upload an Actions CSV file to start the tactical analysis.")
+    st.info("👋 Upload your Actions CSV to see the magic!")
