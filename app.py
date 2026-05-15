@@ -37,17 +37,26 @@ if uploaded_file is not None:
 
     tab1, tab2 = st.tabs(["👤 Individual Analysis", "👥 Team Strategy Analysis"])
 
-    # --- Unified Legend in English ---
+    # --- Unified Legend (The Master Legend) ---
     def get_full_legend():
         return [
-            mlines.Line2D([], [], color='#2ecc71', marker='>', label='Pass Success', linestyle='-', markersize=8),
-            mlines.Line2D([], [], color='#e74c3c', marker='>', label='Pass Failed', linestyle='-', markersize=8),
+            # Passing Legend
+            mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success', markersize=8),
+            mlines.Line2D([], [], color='#e74c3c', marker='>', linestyle='-', label='Pass Failed', markersize=8),
+            mlines.Line2D([], [], color='blue', marker='>', linestyle='-', label='Cross Success', markersize=8),
+            mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Cross Failed', markersize=8),
+            mlines.Line2D([], [], color='#FF69B4', marker='>', linestyle='-', label='Through Ball', markersize=8),
+            mlines.Line2D([], [], color='orange', marker='>', linestyle='-', label='Corner', markersize=8),
+            mlines.Line2D([], [], color='#40E0D0', marker='>', linestyle='-', label='Free Kick', markersize=8),
+            # Defensive & Attack Legend
             mlines.Line2D([], [], color='blue', marker='x', label='Tackle (Blue X)', linestyle='None', markersize=10, markeredgewidth=2),
             mlines.Line2D([], [], color='purple', marker='d', label='Clearance', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='#2ecc71', marker='s', label='Ground Duel Won', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='red', marker='s', label='Ground Duel Lost', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='#2ecc71', marker='^', label='Aerial Won', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='red', marker='^', label='Aerial Lost', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='red', marker='x', label='Foul (Red X)', linestyle='None', markersize=10, markeredgewidth=2),
+            mlines.Line2D([], [], color='black', marker='o', label='Counterpress (#)', linestyle='None', markersize=8),
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
@@ -58,32 +67,46 @@ if uploaded_file is not None:
             tag = str(row['Tags']).lower()
             is_success = 'success' in tag or 'ناجح' in tag
             
-            # 1. Tackles / Interceptions
-            if any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع']):
+            # 1. Passes Logic
+            if 'pass' in act or 'تمرير' in act:
+                if "Passes" in selected_layers:
+                    if 'cross' in tag:
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
+                    elif 'through' in tag:
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax)
+                    elif 'corner' in tag:
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
+                    elif 'free kick' in tag:
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#40E0D0', ax=ax)
+                    else:
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.6)
+
+            # 2. Tackles / Interceptions
+            elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع']):
                 if "Tackles" in selected_layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=250, color='blue', linewidth=3, ax=ax)
             
-            # 2. Clearances
+            # 3. Clearances
             elif any(word in act for word in ['clear', 'تشتيت']):
                 if "Clearances" in selected_layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax)
             
-            # 3. Aerial Duels
+            # 4. Aerial Duels
             elif any(word in act for word in ['aerial', 'هوائي']):
                 if "Aerial Duels" in selected_layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=250, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax)
             
-            # 4. Ground Duels
+            # 5. Ground Duels
             elif any(word in act for word in ['duel', 'ground', 'التحام', 'صراع']) and 'aerial' not in act:
                 if "Ground Duels" in selected_layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax)
             
-            # 5. Passes
-            elif 'pass' in act or 'تمرير' in act:
-                if "Passes" in selected_layers:
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.6)
+            # 6. Fouls
+            elif 'foul' in act:
+                if "Fouls" in selected_layers:
+                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=250, color='red', linewidth=3, ax=ax)
 
-            # 6. Goals
+            # 7. Goals
             if 'goal' in tag or 'هدف' in tag:
                 if "Goals" in selected_layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
@@ -94,7 +117,7 @@ if uploaded_file is not None:
         sel_player = st.selectbox("Select Player", player_list)
         p_df = team_df[team_df['Player'] == sel_player].copy()
         
-        p_layers = ["Passes", "Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Goals"]
+        p_layers = ["Passes", "Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Goals"]
         selected_p_layers = st.multiselect("Select Visual Layers", p_layers, default=p_layers)
 
         pitch = Pitch(pitch_type='statsbomb', pitch_color='white', line_color='#22312b', linestyle='--')
@@ -103,14 +126,14 @@ if uploaded_file is not None:
         
         draw_actions(p_df, ax, pitch, selected_p_layers)
         
-        ax.legend(handles=get_full_legend(), loc='upper right', fontsize='small', framealpha=0.8)
+        ax.legend(handles=get_full_legend(), loc='upper right', fontsize='x-small', framealpha=0.8, bbox_to_anchor=(1, 1))
         st.pyplot(fig)
 
     # --- TAB 2: Team ---
     with tab2:
         col1, col2 = st.columns(2)
         with col2:
-            team_layers = ["Passes", "Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Goals"]
+            team_layers = ["Passes", "Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Goals"]
             selected_t_layers = st.multiselect("Team Tactical Layers", team_layers, default=["Tackles", "Ground Duels", "Goals"])
         
         pitch_t = Pitch(pitch_type='statsbomb', pitch_color='white', line_color='#22312b', linestyle='--')
@@ -119,7 +142,7 @@ if uploaded_file is not None:
 
         draw_actions(team_df, ax_t, pitch_t, selected_t_layers)
 
-        ax_t.legend(handles=get_full_legend(), loc='upper right', fontsize='small', framealpha=0.8)
+        ax_t.legend(handles=get_full_legend(), loc='upper right', fontsize='x-small', framealpha=0.8, bbox_to_anchor=(1, 1))
         st.pyplot(fig_t)
 
 else:
