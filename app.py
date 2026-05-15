@@ -45,9 +45,6 @@ if uploaded_file is not None:
                       linestyle='--', linewidth=1, goal_linestyle='-')
         fig, ax = pitch.draw(figsize=(12, 9))
 
-        # القائمة دي هنستخدمها عشان نبني الدليل داخل الصورة
-        legend_elements = []
-
         for i, row in filtered_df.iterrows():
             tag_str = str(row['Tags']).lower()
             action = str(row['Action']).lower()
@@ -92,7 +89,7 @@ if uploaded_file is not None:
                     pitch.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, 
                                  width=2, color='#f1c40f', linestyle='--', ax=ax)
 
-        # --- بناء الدليل داخل الصورة (Legend) ---
+        # --- بناء الدليل داخل الصورة (Legend) ناحية اليمين ---
         legend_elements = [
             mlines.Line2D([], [], color='#0000FF', marker='*', linestyle='None', markersize=12, label='Shot ON Target'),
             mlines.Line2D([], [], color='#FF00FF', marker='*', linestyle='None', markersize=12, label='Shot OFF Target'),
@@ -106,12 +103,12 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='#f1c40f', marker='>', linestyle='--', markersize=8, label='Ball Carry'),
         ]
 
-        # إضافة المربع للصورة
-        ax.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(0, 1), 
+        # loc='upper right' بتنقل الدليل لليمين
+        ax.legend(handles=legend_elements, loc='upper right', bbox_to_anchor=(1, 1), 
                   fontsize='small', facecolor='white', framealpha=0.8, edgecolor='black')
 
         st.pyplot(fig)
-        st.write("💡 *Now the legend is part of the image. You can right-click and 'Save Image As' to share it.*")
+        st.write("💡 *The legend is now positioned on the right side. Perfect for clarity!*")
 
 else:
     st.info("👋 Upload your CSV file to generate the professional tactical map.")
