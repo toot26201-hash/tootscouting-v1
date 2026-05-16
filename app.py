@@ -8,8 +8,6 @@ from PIL import Image
 import os
 import matplotlib.colors as mcolors
 import numpy as np
-import matplotlib.patheffects as path_effects
-from scipy.ndimage import gaussian_filter
 
 # 1. Page Config & Strict Dark Premium Theme (TootScouting Global Style)
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
@@ -343,21 +341,23 @@ if uploaded_file is not None:
                 
         return matrix
 
-    # دالة توليد الـ Gaussian Filter Heatmap المتقدمة بالمللي بناء على طلبك الاحترافي
-    def draw_gaussian_heatmap(dataframe, ax, pitch_obj):
+    # دالة توليد الـ Smooth Heatmap السلسة والمحترفة بالـ KDE المطور
+    def draw_premium_kde_heatmap(dataframe, ax):
         scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
         scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
         
-        # إنشاء شبكة (Binning Grid) لحساب التمركزات
-        bin_statistic = pitch_obj.bin_statistic(dataframe.x_scaled, dataframe.y_scaled, statistic='count', bins=(30, 20))
-        
-        # تطبيق الفلتر الرياضي المتقدم (Gaussian Smoothing Filter)
-        smoothed_heatmap = gaussian_filter(bin_statistic['statistic'], sigma=1.8)
-        bin_statistic['statistic'] = smoothed_heatmap
-        
-        # رسم الخريطة المضيئة الناعمة مع تأثيرات الـ Path Effects
-        pcm = pitch_obj.heatmap(bin_statistic, ax=ax, cmap=scout_cmap, edgecolors='none', alpha=0.85, zorder=1)
-        return pcm
+        # استخدام التنعيم بالدالة السلسة لفرش الألوان بنعومة دائرية فخمة
+        sns.kdeplot(
+            x=dataframe['x_scaled'], 
+            y=dataframe['y_scaled'], 
+            cmap=scout_cmap, 
+            fill=True, 
+            thresh=0.04, 
+            alpha=0.85, 
+            bw_method=0.28, 
+            zorder=1, 
+            ax=ax
+        )
 
     def render_premium_player_card(player_name, selected_team, stats):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
@@ -450,7 +450,7 @@ if uploaded_file is not None:
         render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
         render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
 
-    # 2. التابة الثانية: خريطة حرارية للفردي بالمنطق الجديد (Gaussian Smoothing Filter)
+    # 2. التابة الثانية: خريطة حرارية للفردي بالمنطق الانسيابي الدائري الجديد (KDE)
     with tab2:
         sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
         p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
@@ -458,8 +458,8 @@ if uploaded_file is not None:
         pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_h, ax_h = pitch_h.draw(figsize=(12, 9))
         
-        if len(p_df_t2) > 0:
-            draw_gaussian_heatmap(p_df_t2, ax_h, pitch_h)
+        if len(p_df_t2) > 1:
+            draw_premium_kde_heatmap(p_df_t2, ax_h)
             
         add_club_logo(ax_h)
         st.pyplot(fig_h)
@@ -496,28 +496,11 @@ if uploaded_file is not None:
         ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_m3)
 
-    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية المتقدمة (Gaussian) للفريق كله
+    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية المتقدمة للفريق كله
     with tab4:
-        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap (Gaussian Smooth): {selected_team}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
         pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_th, ax_th = pitch_th.draw(figsize=(12, 9))
         
-        if len(team_df) > 0:
-            draw_gaussian_heatmap(team_df, ax_th, pitch_th)
-            
-        add_club_logo(ax_th)
-        st.pyplot(fig_th)
-
-    # 5. التابة الخامسة: تابة مستقلة لخرائط الأكشن والتوزيع التكتيكي الجماعي للفريق بالكامل
-    with tab5:
-        st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Team Combined Tactical Actions Map: {selected_team}</h3>", unsafe_allow_html=True)
-        pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-        fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
-        
-        add_club_logo(ax_td)
-        parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
-        ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-        st.pyplot(fig_td)
-
-else:
-    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
+        if len(team_df) > 1:
+            draw_premium_kde_heatmap(team
