@@ -51,12 +51,12 @@ st.markdown("""
         border-color: #a47e3c !important;
     }
 
-    /* Player Performance Summary Table Theme with Progress Bars */
+    /* Player Performance Summary Table Theme with Neon Progress Bars */
     .summary-table-container {
         background: #1e293b;
         padding: 24px;
         border-radius: 12px;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
         margin-bottom: 25px;
         border: 1px solid #a47e3c;
     }
@@ -91,29 +91,32 @@ st.markdown("""
         background-color: rgba(164, 126, 60, 0.1);
     }
     .stat-badge {
-        background-color: #334155;
+        background-color: #0f172a;
         color: #38bdf8;
         padding: 6px 12px;
         border-radius: 6px;
         font-weight: 700;
-        border: 1px solid rgba(56, 189, 248, 0.3);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
     }
     
-    /* Progress Bar Styling */
+    /* Progress Bar Neon Design */
     .progress-bar-bg {
-        background-color: #334155;
-        border-radius: 4px;
-        width: 100px;
-        height: 8px;
+        background-color: #0f172a;
+        border-radius: 6px;
+        width: 140px;
+        height: 12px;
         display: inline-block;
-        margin-left: 10px;
+        margin-right: 12px;
         vertical-align: middle;
         overflow: hidden;
+        border: 1px solid #334155;
     }
     .progress-bar-fill {
-        background: linear-gradient(90deg, #a47e3c, #38bdf8);
+        background: linear-gradient(90deg, #a47e3c 0%, #38bdf8 100%);
         height: 100%;
-        border-radius: 4px;
+        border-radius: 6px;
+        box-shadow: 0 0 8px #38bdf8;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -173,9 +176,9 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # دالة رسم الإجراءات الهجومية والدفاعية كاملة مع ضمان ظهورها فوق الـ Heatmap
-    def draw_tactical_actions(dataframe, ax, pitch_obj, layers):
-        counts = {
+    # محرك البحث الذكي لفك شفرة كافة المصطلحات الدفاعية والهجومية لضمان عدم إخفاء أي معلومة
+    def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True):
+        matrix = {
             "total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0,
             "through_balls": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0,
             "aerial_duels_won": 0, "goals": 0
@@ -184,72 +187,57 @@ if uploaded_file is not None:
         for i, row in dataframe.iterrows():
             act = str(row['Action']).lower()
             tag = str(row['Tags']).lower()
-            is_success = 'success' in tag or 'ناجح' in tag
-            drawn_action = False
+            is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag
+            action_captured = False
             
-            # تمرير وتوزيع الكرات
+            # فك شفرة التمريرات والعرضيات
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
-                    counts["crosses"] += 1
-                    if is_success: counts["success_crosses"] += 1
-                    drawn_action = True
+                    if draw_mode: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
+                    matrix["crosses"] += 1
+                    if is_success: matrix["success_crosses"] += 1
+                    action_captured = True
                 elif 'through' in tag and "Through Balls" in layers:
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax, zorder=4)
-                    counts["through_balls"] += 1
-                    drawn_action = True
+                    if draw_mode: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax, zorder=4)
+                    matrix["through_balls"] += 1
+                    action_captured = True
                 elif 'corner' in tag and "Corners" in layers:
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
-                    drawn_action = True
+                    if draw_mode: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
+                    action_captured = True
                 elif "Normal Passes" in layers and not any(k in tag for k in ['cross', 'through', 'corner', 'free kick']):
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5, zorder=3)
-                    drawn_action = True
+                    if draw_mode: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5, zorder=3)
+                    action_captured = True
                 
-                if drawn_action:
-                    counts["total_passes"] += 1
-                    if is_success: counts["success_passes"] += 1
+                if action_captured:
+                    matrix["total_passes"] += 1
+                    if is_success: matrix["success_passes"] += 1
 
-            # إظهار ورسم كافة الإجراءات الدفاعية بدقة مع رفع الـ zorder لتكون واضحة جداً
-            elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام', 'foul', 'خطأ']):
-                if any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
-                    counts["tackles"] += 1
-                elif 'clear' in act and "Clearances" in layers:
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
-                    counts["clearances"] += 1
-                elif 'aerial' in act and "Aerial Duels" in layers:
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
-                    if is_success: counts["aerial_duels_won"] += 1
-                elif 'duel' in act and 'aerial' not in act and "Ground Duels" in layers:
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
-                    if is_success: counts["ground_duels_won"] += 1
+            # فك شفرة التدخلات والتاكلز (صيد كامل وشامل)
+            elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع', 'تكل', 'تاكلز']) and "Tackles" in layers:
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
+                matrix["tackles"] += 1
+
+            # فك شفرة التشتيت
+            elif any(w in act for w in ['clear', 'clearance', 'تشتيت', 'ابعاد']) and "Clearances" in layers:
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
+                matrix["clearances"] += 1
+
+            # فك شفرة الالتحامات الهوائية
+            elif any(w in act for w in ['aerial', 'هوائي', 'طير', 'رأس']) and "Aerial Duels" in layers:
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
+                if is_success: matrix["aerial_duels_won"] += 1
+
+            # فك شفرة الالتحامات الأرضية (بشرط ما يكونش هوائي)
+            elif any(w in act for w in ['duel', 'التحام', 'صراع', 'أرضي', 'ground']) and 'aerial' not in act and "Ground Duels" in layers:
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
+                if is_success: matrix["ground_duels_won"] += 1
             
+            # رصد الأهداف
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
-                pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
-                counts["goals"] += 1
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
+                matrix["goals"] += 1
                 
-        return counts
-
-    def get_stats_only(dataframe, layers):
-        counts = {"total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0, "through_balls": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0, "aerial_duels_won": 0, "goals": 0}
-        for i, row in dataframe.iterrows():
-            act = str(row['Action']).lower()
-            tag = str(row['Tags']).lower()
-            is_success = 'success' in tag or 'ناجح' in tag
-            if 'pass' in act or 'تمرير' in act:
-                if 'cross' in tag and "Crosses" in layers:
-                    counts["crosses"] += 1
-                    if is_success: counts["success_crosses"] += 1
-                elif 'through' in tag and "Through Balls" in layers: counts["through_balls"] += 1
-                elif "Normal Passes" in layers and not any(k in tag for k in ['cross', 'through', 'corner', 'free kick']):
-                    counts["total_passes"] += 1
-                    if is_success: counts["success_passes"] += 1
-            elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers: counts["tackles"] += 1
-            elif 'clear' in act and "Clearances" in layers: counts["clearances"] += 1
-            elif 'aerial' in act and "Aerial Duels" in layers and is_success: counts["aerial_duels_won"] += 1
-            elif 'duel' in act and 'aerial' not in act and "Ground Duels" in layers and is_success: counts["ground_duels_won"] += 1
-            if ('goal' in tag or 'هدف' in tag) and "Goals" in layers: counts["goals"] += 1
-        return counts
+        return matrix
 
     def render_player_summary_table(player_name, stats):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
@@ -263,7 +251,7 @@ if uploaded_file is not None:
                         <tr><td><b>Total Passing</b></td><td>{stats['total_passes']}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {p_pct}%;"></div></div> <span class="stat-badge">{stats['success_passes']} ({p_pct:.1f}%)</span></td></tr>
                         <tr><td><b>Crosses</b></td><td>{stats['crosses']}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {c_pct}%;"></div></div> <span class="stat-badge">{stats['success_crosses']} ({c_pct:.1f}%)</span></td></tr>
                         <tr><td><b>Through Balls</b></td><td>{stats['through_balls']}</td><td><span class="stat-badge">{stats['through_balls']}</span></td></tr>
-                        <tr><td><b>Defensive Tackles</b></td><td>{stats['tackles']}</td><td><span class="stat-badge">{stats['tackles']}</span></td></tr>
+                        <tr><td><b>Defensive Tackles (Tackles)</b></td><td>{stats['tackles']}</td><td><span class="stat-badge">{stats['tackles']}</span></td></tr>
                         <tr><td><b>Clearances</b></td><td>{stats['clearances']}</td><td><span class="stat-badge">{stats['clearances']}</span></td></tr>
                         <tr><td><b>Ground Duels Won</b></td><td>-</td><td><span class="stat-badge">{stats['ground_duels_won']} Won</span></td></tr>
                         <tr><td><b>Aerial Duels Won</b></td><td>-</td><td><span class="stat-badge">{stats['aerial_duels_won']} Won</span></td></tr>
@@ -278,62 +266,59 @@ if uploaded_file is not None:
     with tab1:
         player_list = sorted(team_df['Player'].dropna().unique().tolist())
         player_options = {p: f"🛡️ {p}" for p in player_list}
-        
         sel_player = st.selectbox("🎯 Focus Player:", options=player_list, format_func=lambda x: player_options[x])
         p_df = team_df[team_df['Player'] == sel_player].copy()
         
-        p_stats = get_stats_only(p_df, all_selected_layers)
+        # خطوة الخلفية لحساب الماتريكس كامل
+        p_stats = parse_action_metrics(p_df, None, None, all_selected_layers, draw_mode=False)
         render_player_summary_table(sel_player, p_stats)
         
         col1, col2 = st.columns(2)
         
         with col1:
-            st.markdown("<h3 style='text-align: center; color: #38bdf8;'>🔥 Tactical Heatmap</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #38bdf8;'>🔥 Premium Tactical Heatmap</h3>", unsafe_allow_html=True)
             pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_h, ax_h = pitch_h.draw(figsize=(8, 6))
             
-            # بناء Custom Custom Colormap يطابق الصورة المرفقة بالظبط
-            # أزرق -> أخضر -> أصفر -> برتقالي -> أحمر داكن
+            # بناء باليتة الألوان المطبقة من الصورة بالمللي
             scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
             scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
             
-            # رسم الخريطة الحرارية لوحدها بالوان سكاوت لاب المحددة
             if len(p_df) > 1:
-                sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.01, alpha=0.8, zorder=1, ax=ax_h)
+                sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.01, alpha=0.82, bw_method=0.3, zorder=1, ax=ax_h)
             add_club_logo(ax_h)
             st.pyplot(fig_h)
             
         with col2:
-            st.markdown("<h3 style='text-align: center; color: #a47e3c;'>🛡️ Defensive Actions Map</h3>", unsafe_allow_html=True)
+            st.markdown("<h3 style='text-align: center; color: #a47e3c;'>🛡️ Complete Defensive Actions</h3>", unsafe_allow_html=True)
             pitch_d = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_d, ax_d = pitch_d.draw(figsize=(8, 6))
             
             add_club_logo(ax_d)
-            # رسم وإظهار كل الأكشنز الدفاعية من داتا اللعب الأساسي بوضوح فوق الملعب النظيف
-            draw_tactical_actions(p_df, ax_d, pitch_d, all_selected_layers)
+            # استدعاء الرسم المباشر لجميع الأكشنز الدفاعية دون نقصان
+            parse_action_metrics(p_df, ax_d, pitch_d, all_selected_layers, draw_mode=True)
             ax_d.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='x-small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
             st.pyplot(fig_d)
 
     with tab2:
-        st.subheader(f"Tactical Distribution: {selected_team}")
+        st.subheader(f"Team Level View: {selected_team}")
         col_t1, col_t2 = st.columns(2)
         
         with col_t1:
             st.markdown("<h4 style='text-align: center;'>Team Heatmap</h4>", unsafe_allow_html=True)
             pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_th, ax_th = pitch_th.draw(figsize=(8, 6))
-            
             if len(team_df) > 1:
                 sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap='Oranges', fill=True, thresh=0.05, alpha=0.6, zorder=1, ax=ax_th)
             add_club_logo(ax_th)
             st.pyplot(fig_th)
             
         with col_t2:
-            st.markdown("<h4 style='text-align: center;'>Team Actions</h4>", unsafe_allow_html=True)
+            st.markdown("<h4 style='text-align: center;'>Team Actions Map</h4>", unsafe_allow_html=True)
             pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_td, ax_td = pitch_td.draw(figsize=(8, 6))
             add_club_logo(ax_td)
-            draw_tactical_actions(team_df, ax_td, pitch_td, all_selected_layers)
+            parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
             ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='x-small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
             st.pyplot(fig_td)
 else:
