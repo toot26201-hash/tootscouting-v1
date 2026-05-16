@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
-import matplotlib.lines as mlines
+import matplotlib.lines mlines
 import seaborn as sns
 from PIL import Image
 import os
@@ -346,7 +346,6 @@ if uploaded_file is not None:
         scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
         scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
         
-        # استخدام التنعيم بالدالة السلسة لفرش الألوان بنعومة دائرية فخمة
         sns.kdeplot(
             x=dataframe['x_scaled'], 
             y=dataframe['y_scaled'], 
@@ -496,11 +495,28 @@ if uploaded_file is not None:
         ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_m3)
 
-    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية المتقدمة للفريق كله
+    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية المتقدمة للفريق كله (تم إصلاح القوس هنا يا بطل)
     with tab4:
         st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
         pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_th, ax_th = pitch_th.draw(figsize=(12, 9))
         
         if len(team_df) > 1:
-            draw_premium_kde_heatmap(team
+            draw_premium_kde_heatmap(team_df, ax_th)  # تم تقفيل السطر ده بالمللي بنجاح!
+            
+        add_club_logo(ax_th)
+        st.pyplot(fig_th)
+
+    # 5. التابة الخامسة: تابة مستقلة لخرائط الأكشن والتوزيع التكتيكي الجماعي للفريق بالكامل
+    with tab5:
+        st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Team Combined Tactical Actions Map: {selected_team}</h3>", unsafe_allow_html=True)
+        pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
+        
+        add_club_logo(ax_td)
+        parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
+        ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+        st.pyplot(fig_td)
+
+else:
+    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
