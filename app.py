@@ -306,40 +306,46 @@ if uploaded_file is not None:
                     matrix["total_passes"] += 1
                     if is_success: matrix["success_passes"] += 1
 
-            # الفئات الدفاعية البحتة (تم تعديل السطر وإزالة كلمة Image بنجاح هنا)
-            elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع', 'تكل', 'تاكلز']) and "Tackles" in layers:
-                if draw_mode and (specific_type is None or specific_type == "defense"):
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
+            # الفئات الدفاعية البحتة (تم تأمين ظهورها 100%)
+            elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع', 'تكل', 'تاكلز']):
+                if "Tackles" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
                 matrix["tackles"] += 1
 
-            elif any(w in act for w in ['clear', 'clearance', 'تشتيت', 'ابعاد']) and "Clearances" in layers:
-                if draw_mode and (specific_type is None or specific_type == "defense"):
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
+            elif any(w in act for w in ['clear', 'clearance', 'تشتيت', 'ابعاد']):
+                if "Clearances" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
                 matrix["clearances"] += 1
 
-            elif any(w in act for w in ['aerial', 'هوائي', 'طير', 'رأس']) and "Aerial Duels" in layers:
-                if draw_mode and (specific_type is None or specific_type == "defense"):
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
+            elif any(w in act for w in ['aerial', 'هوائي', 'طير', 'رأس']):
+                if "Aerial Duels" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
                 if is_success: matrix["aerial_duels_won"] += 1
 
-            elif any(w in act for w in ['duel', 'التحام', 'صراع', 'أرضي', 'ground']) and 'aerial' not in act and "Ground Duels" in layers:
-                if draw_mode and (specific_type is None or specific_type == "defense"):
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
+            elif any(w in act for w in ['duel', 'التحام', 'صراع', 'أرضي', 'ground']) and 'aerial' not in act:
+                if "Ground Duels" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
                 if is_success: matrix["ground_duels_won"] += 1
 
-            elif any(w in act or w in tag for w in ['foul', 'خطأ', 'committed', 'suffered']) and "Fouls" in layers:
-                if draw_mode and (specific_type is None or specific_type == "defense"):
-                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='red', linewidth=3, ax=ax, zorder=5)
+            elif any(w in act or w in tag for w in ['foul', 'خطأ', 'committed', 'suffered']):
+                if "Fouls" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='red', linewidth=3, ax=ax, zorder=5)
                 matrix["fouls"] += 1
 
-            elif any(w in act or w in tag for w in ['counterpress', 'press', 'recovery', 'ضغط']) and "Counterpress" in layers:
-                if draw_mode and (specific_type is None or specific_type == "defense"):
-                    ax.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
+            elif any(w in act or w in tag for w in ['counterpress', 'press', 'recovery', 'ضغط']):
+                if "Counterpress" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                        ax.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
                 matrix["counterpress"] += 1
                 
         return matrix
 
-    # دالة بناء كارت اللاعب البروفيشينال (ScoutLab Tactical Shield Card)
+    # دالة بناء كارت اللاعب البروفيشينال
     def render_premium_player_card(player_name, selected_team, stats):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
         total_def = stats['tackles'] + stats['clearances'] + stats['ground_duels_won'] + stats['aerial_duels_won']
@@ -411,12 +417,13 @@ if uploaded_file is not None:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- التبويبات الفنية الفخمة المنفصلة بالكامل ---
-    tab1, tab2, tab3, tab4 = st.tabs([
+    # --- التبويبات الفنية الخمسة المنفصلة بالكامل (The Ultimate Dashboard Master Config) ---
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "📊 Player Profile Summary", 
         "🔥 Player Tactical Heatmap", 
         "🏃‍♂️ Player Actions Map",
-        "👥 Team Strategy Lab"
+        "👥 Team Tactical Heatmap",
+        "🛡️ Team Actions Map"
     ])
 
     player_list = sorted(team_df['Player'].dropna().unique().tolist())
@@ -431,7 +438,7 @@ if uploaded_file is not None:
         render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
         render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
 
-    # 2. التابة الثانية: خريطة حرارية لوحدها بكامل العرض وبألوان سكاوت لاب النارية
+    # 2. التابة الثانية: خريطة حرارية للفردي بكامل العرض وبألوان سكاوت لاب النارية
     with tab2:
         sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
         p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
@@ -447,7 +454,7 @@ if uploaded_file is not None:
         add_club_logo(ax_h)
         st.pyplot(fig_h)
 
-    # 3. التابة الثالثة: تفكيك الـ Player Actions Map لـ 3 خرائط منفصلة تماماً تحت بعض
+    # 3. التابة الثالثة: تفكيك الـ Player Actions Map لـ 3 خرائط منفصلة تماماً تحت بعض ومثبت فيها الـ Legend
     with tab3:
         sel_player_t3 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
         p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
@@ -475,36 +482,35 @@ if uploaded_file is not None:
         fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
         add_club_logo(ax_m3)
         parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
+        
+        # ربط وتثبيت الـ Legend هنا يا بطل في خريطة الأكشنز الفردية بالظبط
         ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_m3)
 
-    # 4. التابة الرابعة: تابة التحاليل الجماعية للفريق بالكامل
+    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية الجماعية للفريق كله بكامل عرض الشاشة
     with tab4:
-        st.subheader(f"👥 Global Team Level Analysis: {selected_team}")
-        col_t1, col_t2 = st.columns(2)
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
+        pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_th, ax_th = pitch_th.draw(figsize=(12, 9)) # حجم عريض ومثالي للتحليل الجماعي
         
-        with col_t1:
-            st.markdown("<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Heatmap</h3>", unsafe_allow_html=True)
-            pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_th, ax_th = pitch_th.draw(figsize=(8, 6))
-            
-            scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
-            scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
-            
-            if len(team_df) > 1:
-                sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.01, alpha=0.82, bw_method=0.3, zorder=1, ax=ax_th)
-            add_club_logo(ax_th)
-            st.pyplot(fig_th)
-            
-        with col_t2:
-            st.markdown("<h3 style='text-align: center; color: #a47e3c;'>🛡️ Team Actions Map</h3>", unsafe_allow_html=True)
-            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_td, ax_td = pitch_td.draw(figsize=(8, 6))
-            
-            add_club_logo(ax_td)
-            parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
-            ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='x-small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            st.pyplot(fig_td)
+        scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
+        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
+        
+        if len(team_df) > 1:
+            sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.01, alpha=0.82, bw_method=0.3, zorder=1, ax=ax_th)
+        add_club_logo(ax_th)
+        st.pyplot(fig_th)
+
+    # 5. التابة الخامسة: تابة مستقلة لخرائط الأكشن والتوزيع التكتيكي الجماعي للفريق بالكامل
+    with tab5:
+        st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Team Combined Tactical Actions Map: {selected_team}</h3>", unsafe_allow_html=True)
+        pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
+        
+        add_club_logo(ax_td)
+        parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
+        ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+        st.pyplot(fig_td)
 
 else:
     st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
