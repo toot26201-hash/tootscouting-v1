@@ -51,6 +51,88 @@ st.markdown("""
         border-color: #a47e3c !important;
     }
 
+    /* PREMIUM SCOUTLAB PLAYER CARD DESIGN */
+    .premium-player-card {
+        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        border: 2px solid #a47e3c;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.7);
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        margin-bottom: 25px;
+        position: relative;
+        overflow: hidden;
+    }
+    .premium-card-left {
+        display: flex;
+        align-items: center;
+        gap: 20px;
+    }
+    .premium-player-img-wrapper {
+        position: relative;
+        width: 110px;
+        height: 110px;
+        border-radius: 50%;
+        border: 3px solid #a47e3c;
+        background-color: #1e293b;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 0 15px rgba(164, 126, 60, 0.4);
+    }
+    .premium-player-avatar {
+        font-size: 55px;
+    }
+    .premium-player-meta h2 {
+        margin: 0;
+        font-size: 2rem !important;
+        font-weight: 800;
+        color: #ffffff;
+        letter-spacing: -0.5px;
+    }
+    .premium-player-meta p {
+        margin: 4px 0 0 0;
+        font-size: 1rem;
+        color: #94a3b8;
+        font-weight: 500;
+    }
+    .premium-card-right {
+        display: flex;
+        gap: 15px;
+    }
+    .premium-stat-tile {
+        background: rgba(30, 41, 59, 0.7);
+        border: 1px solid rgba(164, 126, 60, 0.3);
+        border-radius: 12px;
+        padding: 15px;
+        min-width: 100px;
+        text-align: center;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+    }
+    .premium-stat-tile-large {
+        background: linear-gradient(135deg, #a47e3c 0%, #6d4c1b 100%);
+        border: 1px solid #a47e3c;
+    }
+    .premium-tile-val {
+        font-size: 1.8rem;
+        font-weight: 800;
+        color: #ffffff;
+        line-height: 1;
+    }
+    .premium-tile-lbl {
+        font-size: 0.75rem;
+        color: #94a3b8;
+        font-weight: 700;
+        text-transform: uppercase;
+        margin-top: 6px;
+        letter-spacing: 0.5px;
+    }
+    .premium-stat-tile-large .premium-tile-lbl {
+        color: #f1f5f9;
+    }
+
     /* Player Performance Summary Table Theme with Neon Progress Bars */
     .summary-table-container {
         background: #1e293b;
@@ -58,7 +140,7 @@ st.markdown("""
         border-radius: 12px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
         margin-bottom: 25px;
-        border: 1px solid #a47e3c;
+        border: 1px solid rgba(164, 126, 60, 0.3);
     }
     .summary-title {
         font-size: 1.3rem;
@@ -97,7 +179,6 @@ st.markdown("""
         border-radius: 6px;
         font-weight: 700;
         border: 1px solid rgba(56, 189, 248, 0.4);
-        box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
     }
     
     /* Progress Bar Neon Design */
@@ -116,7 +197,6 @@ st.markdown("""
         background: linear-gradient(90deg, #a47e3c 0%, #38bdf8 100%);
         height: 100%;
         border-radius: 6px;
-        box-shadow: 0 0 8px #38bdf8;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -178,7 +258,7 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # محرك البحث المطور ورصد كافة الإجراءات التكتيكية بدقة تفاعلية لايف
+    # محرك البحث ورسم الماتريكس التكتيكي بالكامل
     def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True):
         matrix = {
             "total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0,
@@ -192,7 +272,6 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag
             action_captured = False
             
-            # 1. التمريرات والعرضيات
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
                     if draw_mode: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
@@ -214,49 +293,85 @@ if uploaded_file is not None:
                     matrix["total_passes"] += 1
                     if is_success: matrix["success_passes"] += 1
 
-            # 2. التاكلز والتدخلات
             elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع', 'تكل', 'تاكلز']) and "Tackles" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
                 matrix["tackles"] += 1
 
-            # 3. التشتيت
             elif any(w in act for w in ['clear', 'clearance', 'تشتيت', 'ابعاد']) and "Clearances" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
                 matrix["clearances"] += 1
 
-            # 4. الالتحامات الهوائية
             elif any(w in act for w in ['aerial', 'هوائي', 'طير', 'رأس']) and "Aerial Duels" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
                 if is_success: matrix["aerial_duels_won"] += 1
 
-            # 5. الالتحامات الأرضية
             elif any(w in act for w in ['duel', 'التحام', 'صراع', 'أرضي', 'ground']) and 'aerial' not in act and "Ground Duels" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
                 if is_success: matrix["ground_duels_won"] += 1
 
-            # 6. الفاولات (Fouls) - رصد ذكي شامل
             elif any(w in act or w in tag for w in ['foul', 'خطأ', 'committed', 'suffered']) and "Fouls" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='red', linewidth=3, ax=ax, zorder=5)
                 matrix["fouls"] += 1
 
-            # 7. الضغط العكسي (Counterpress) - لقطة ذكية جداً من الداتا
             elif any(w in act or w in tag for w in ['counterpress', 'press', 'recovery', 'ضغط']) and "Counterpress" in layers:
                 if draw_mode: ax.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
                 matrix["counterpress"] += 1
             
-            # الأهداف
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
                 matrix["goals"] += 1
                 
         return matrix
 
-    # دالة توليد بروفايل اللاعب وجدول الإحصائيات التفاعلي لايف 100%
+    # دالة بناء كارت اللاعب البروفيشينال (ScoutLab Tactical Shield Card)
+    def render_premium_player_card(player_name, selected_team, stats):
+        p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
+        total_def = stats['tackles'] + stats['clearances'] + stats['ground_duels_won'] + stats['aerial_duels_won']
+        
+        # معادلة لحساب ريت افتراضي شيك للكارت بناء على دقة التمرير والدفاع
+        calculated_rating = int(60 + (p_pct * 0.25) + (total_def * 0.5))
+        if calculated_rating > 99: calculated_rating = 99
+
+        st.markdown(f"""
+            <div class="premium-player-card">
+                <div class="premium-card-left">
+                    <div class="premium-player-img-wrapper">
+                        <span class="premium-player-avatar">🏃‍♂️</span>
+                    </div>
+                    <div class="premium-player-meta">
+                        <h2>{player_name}</h2>
+                        <p>Club: {selected_team} | Tactical Scouting Profile</p>
+                    </div>
+                </div>
+                <div class="premium-card-right">
+                    <div class="premium-stat-tile premium-stat-tile-large">
+                        <div class="premium-tile-val">{calculated_rating}</div>
+                        <div class="premium-tile-lbl">Rating</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{stats['total_passes']}</div>
+                        <div class="premium-tile-lbl">Passes</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{p_pct:.0f}%</div>
+                        <div class="premium-tile-lbl">Accuracy</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{total_def}</div>
+                        <div class="premium-tile-lbl">Def. Stats</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{stats['goals']}</div>
+                        <div class="premium-tile-lbl">Goals</div>
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
     def render_player_summary_table(player_name, stats, active_layers):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
         c_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
         
-        # تصفير القيم لو الفلتر بتاعها مش متفعل عشان نضمن التفاعلية الكاملة لايف
         t_passes = stats['total_passes'] if "Normal Passes" in active_layers else 0
         s_passes = stats['success_passes'] if "Normal Passes" in active_layers else 0
         t_crosses = stats['crosses'] if "Crosses" in active_layers else 0
@@ -272,7 +387,7 @@ if uploaded_file is not None:
 
         st.markdown(f"""
             <div class="summary-table-container">
-                <div class="summary-title">📊 Live Interactive Summary Profile: {player_name}</div>
+                <div class="summary-title">📊 Live Interactive Summary Table</div>
                 <table class="player-summary-table">
                     <thead><tr><th>Metric Category</th><th>Total Attempts</th><th>Visual Progress & Accuracy</th></tr></thead>
                     <tbody>
@@ -302,11 +417,14 @@ if uploaded_file is not None:
     player_list = sorted(team_df['Player'].dropna().unique().tolist())
     player_options = {p: f"🛡️ {p}" for p in player_list}
 
-    # 1. التابة الأولى: جدول أداء اللاعب الفردي التفاعلي لايف 100%
+    # 1. التابة الأولى: الكارت الاحترافي الجديد + جدول الأداء التفاعلي
     with tab1:
         sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
         p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
         p_stats_t1 = parse_action_metrics(p_df_t1, None, None, all_selected_layers, draw_mode=False)
+        
+        # استدعاء الكارت البروفيشينال الجديد هنا يا بطل!
+        render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
         render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
 
     # 2. التابة الثانية: خريطة حرارية للفردي بكامل العرض وبألوان سكاوت لاب النارية
