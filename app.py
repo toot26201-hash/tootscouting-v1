@@ -6,6 +6,7 @@ import matplotlib.lines as mlines
 import seaborn as sns
 from PIL import Image
 import os
+import matplotlib.colors as mcolors
 
 # 1. Page Config & Strict Dark Premium Theme (TootScouting Global Style)
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
@@ -151,8 +152,8 @@ if uploaded_file is not None:
     with st.sidebar.expander("🎯 Passing Filters", expanded=True):
         selected_passes = st.multiselect("Pass Types:", ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"], default=["Normal Passes", "Crosses"])
         
-    with st.sidebar.expander("🛡️ Defensive Filters", expanded=True):
-        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Clearances"])
+    with st.sidebar.expander("🛡️ Defensive & Attack Filters", expanded=True):
+        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels"])
 
     all_selected_layers = selected_passes + selected_defense
 
@@ -172,8 +173,8 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # دالة رسم الإجراءات الدفاعية والهجومية فقط
-    def draw_defensive_actions(dataframe, ax, pitch_obj, layers):
+    # دالة رسم الإجراءات الهجومية والدفاعية كاملة مع ضمان ظهورها فوق الـ Heatmap
+    def draw_tactical_actions(dataframe, ax, pitch_obj, layers):
         counts = {
             "total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0,
             "through_balls": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0,
@@ -186,6 +187,7 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag
             drawn_action = False
             
+            # تمرير وتوزيع الكرات
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
                     pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
@@ -207,7 +209,8 @@ if uploaded_file is not None:
                     counts["total_passes"] += 1
                     if is_success: counts["success_passes"] += 1
 
-            elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام']):
+            # إظهار ورسم كافة الإجراءات الدفاعية بدقة مع رفع الـ zorder لتكون واضحة جداً
+            elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام', 'foul', 'خطأ']):
                 if any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
                     counts["tackles"] += 1
@@ -227,7 +230,6 @@ if uploaded_file is not None:
                 
         return counts
 
-    # دالة حساب الإحصائيات في الخلفية للجدول
     def get_stats_only(dataframe, layers):
         counts = {"total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0, "through_balls": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0, "aerial_duels_won": 0, "goals": 0}
         for i, row in dataframe.iterrows():
@@ -274,7 +276,6 @@ if uploaded_file is not None:
     tab1, tab2 = st.tabs(["👤 Individual Player Lab", "👥 Team Strategy Lab"])
 
     with tab1:
-        # تجهيز الأسماء مع لوجو النادي 🛡️ لتظهر بشكل عالمي في القائمة المنسدلة
         player_list = sorted(team_df['Player'].dropna().unique().tolist())
         player_options = {p: f"🛡️ {p}" for p in player_list}
         
@@ -284,7 +285,6 @@ if uploaded_file is not None:
         p_stats = get_stats_only(p_df, all_selected_layers)
         render_player_summary_table(sel_player, p_stats)
         
-        # تقسيم الشاشة لملعبين متوازيين (Side-by-Side) زي لاب سكاوت بالظبط
         col1, col2 = st.columns(2)
         
         with col1:
@@ -292,9 +292,14 @@ if uploaded_file is not None:
             pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_h, ax_h = pitch_h.draw(figsize=(8, 6))
             
-            # الخريطة الحرارية لوحدها بألوان نارية فخمة (تدرج ناري مريح وعالي التباين)
+            # بناء Custom Custom Colormap يطابق الصورة المرفقة بالظبط
+            # أزرق -> أخضر -> أصفر -> برتقالي -> أحمر داكن
+            scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
+            scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
+            
+            # رسم الخريطة الحرارية لوحدها بالوان سكاوت لاب المحددة
             if len(p_df) > 1:
-                sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap='YlOrRd', fill=True, thresh=0.03, alpha=0.75, zorder=1, ax=ax_h)
+                sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.01, alpha=0.8, zorder=1, ax=ax_h)
             add_club_logo(ax_h)
             st.pyplot(fig_h)
             
@@ -304,8 +309,8 @@ if uploaded_file is not None:
             fig_d, ax_d = pitch_d.draw(figsize=(8, 6))
             
             add_club_logo(ax_d)
-            # رسم الأكشنز الدفاعية لوحدها تماماً فوق الملعب الأبيض النظيف
-            draw_defensive_actions(p_df, ax_d, pitch_d, all_selected_layers)
+            # رسم وإظهار كل الأكشنز الدفاعية من داتا اللعب الأساسي بوضوح فوق الملعب النظيف
+            draw_tactical_actions(p_df, ax_d, pitch_d, all_selected_layers)
             ax_d.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='x-small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
             st.pyplot(fig_d)
 
@@ -317,6 +322,7 @@ if uploaded_file is not None:
             st.markdown("<h4 style='text-align: center;'>Team Heatmap</h4>", unsafe_allow_html=True)
             pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_th, ax_th = pitch_th.draw(figsize=(8, 6))
+            
             if len(team_df) > 1:
                 sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap='Oranges', fill=True, thresh=0.05, alpha=0.6, zorder=1, ax=ax_th)
             add_club_logo(ax_th)
@@ -327,7 +333,7 @@ if uploaded_file is not None:
             pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_td, ax_td = pitch_td.draw(figsize=(8, 6))
             add_club_logo(ax_td)
-            draw_defensive_actions(team_df, ax_td, pitch_td, all_selected_layers)
+            draw_tactical_actions(team_df, ax_td, pitch_td, all_selected_layers)
             ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='x-small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
             st.pyplot(fig_td)
 else:
