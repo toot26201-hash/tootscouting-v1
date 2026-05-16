@@ -258,7 +258,7 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # محرك البحث ورصد الماتريكس التكتيكي بالكامل (تصفية شاملة للأهداف وكل الإجراءات لايف)
+    # محرك البحث ورسم الماتريكس التكتيكي بالكامل
     def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True, specific_type=None):
         matrix = {
             "total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0,
@@ -272,7 +272,7 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag
             action_captured = False
             
-            # رصد الأهداف أولاً لضمان تفاعلية الكروت لايف بنسبة 100%
+            # رصد الأهداف
             if 'goal' in act or 'goal' in tag or 'هدف' in act or 'هدف' in tag:
                 matrix["goals"] += 1
                 if draw_mode and (specific_type is None or specific_type == "defense") and "Goals" in layers:
@@ -306,14 +306,14 @@ if uploaded_file is not None:
                     matrix["total_passes"] += 1
                     if is_success: matrix["success_passes"] += 1
 
-            # الفئات الدفاعية البحتة
+            # الفئات الدفاعية البحتة (تم تعديل السطر وإزالة كلمة Image بنجاح هنا)
             elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع', 'تكل', 'تاكلز']) and "Tackles" in layers:
                 if draw_mode and (specific_type is None or specific_type == "defense"):
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
                 matrix["tackles"] += 1
 
             elif any(w in act for w in ['clear', 'clearance', 'تشتيت', 'ابعاد']) and "Clearances" in layers:
-                if draw_mode Image and (specific_type is None or specific_type == "defense"):
+                if draw_mode and (specific_type is None or specific_type == "defense"):
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
                 matrix["clearances"] += 1
 
@@ -385,7 +385,6 @@ if uploaded_file is not None:
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
         c_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
         
-        # ربط قيم البارات لايف بالفلاتر النشطة
         def get_live_bar_html(val, max_val=15):
             pct = (val / max_val) * 100 if val > 0 else 0
             if pct > 100: pct = 100
@@ -405,7 +404,7 @@ if uploaded_file is not None:
                         <tr><td><b>Ground Duels Won</b></td><td>{stats['ground_duels_won'] if "Ground Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['ground_duels_won'] if "Ground Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
                         <tr><td><b>Aerial Duels Won</b></td><td>{stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
                         <tr><td><b>Fouls Operations</b></td><td>{stats['fouls'] if "Fouls" in active_layers else 0}</td><td>{get_live_bar_html(stats['fouls'] if "Fouls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
-                        <tr><td><b>Counterpress (#)</b></td><td>{stats['counterpress'] if "Counterpress" in active_layers else 0}</td><td>{get_live_bar_html(stats['counterpress'] if "Counterpress" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Counterpress Actions (#)</b></td><td>{stats['counterpress'] if "Counterpress" in active_layers else 0}</td><td>{get_live_bar_html(stats['counterpress'] if "Counterpress" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
                         <tr><td style="color: gold; font-weight: bold;">⚽ Goals Scored</td><td>{stats['goals'] if "Goals" in active_layers else 0}</td><td>{get_live_bar_html(stats['goals'] if "Goals" in active_layers else 0, 5)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Live Target</span></td></tr>
                     </tbody>
                 </table>
@@ -448,12 +447,11 @@ if uploaded_file is not None:
         add_club_logo(ax_h)
         st.pyplot(fig_h)
 
-    # 3. التابة الثالثة: تفكيك الـ Player Actions Map لـ 3 خرائط منفصلة تماماً تحت بعض لسهولة السكرين شوتس
+    # 3. التابة الثالثة: تفكيك الـ Player Actions Map لـ 3 خرائط منفصلة تماماً تحت بعض
     with tab3:
         sel_player_t3 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
         p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
         
-        # خريطة 1: التمريرات العادية والبينيات
         st.markdown("<h3 style='color: #2ecc71;'>📐 Map 1: Normal & Through Passes</h3>", unsafe_allow_html=True)
         pitch_m1 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m1, ax_m1 = pitch_m1.draw(figsize=(11, 7))
@@ -463,7 +461,6 @@ if uploaded_file is not None:
         
         st.markdown("---")
         
-        # خريطة 2: الكروسات والركنيات العرضية
         st.markdown("<h3 style='color: #38bdf8;'>🏹 Map 2: Crosses & Corners Matrix</h3>", unsafe_allow_html=True)
         pitch_m2 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m2, ax_m2 = pitch_m2.draw(figsize=(11, 7))
@@ -473,7 +470,6 @@ if uploaded_file is not None:
         
         st.markdown("---")
         
-        # خريطة 3: مصفوفة الإجراءات الدفاعية والضغط والفاولات بالكامل
         st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 3: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
         pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
