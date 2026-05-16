@@ -3,9 +3,10 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.lines as mlines
+import seaborn as sns  # تم إضافة seaborn لرسم الخريطة الحرارية بدقة
 from PIL import Image
 
-# 1. Page Config & Strict Dark Premium Theme (Matching the Tactical Card)
+# 1. Page Config & Strict Dark Premium Theme
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
 st.markdown("""
@@ -48,7 +49,7 @@ st.markdown("""
         border-color: #a47e3c !important;
     }
 
-    /* Player Performance Summary Table Theme */
+    /* Player Performance Summary Table Theme with Progress Bars */
     .summary-table-container {
         background: #1e293b;
         padding: 24px;
@@ -95,6 +96,23 @@ st.markdown("""
         font-weight: 700;
         border: 1px solid rgba(56, 189, 248, 0.3);
     }
+    
+    /* Progress Bar Styling */
+    .progress-bar-bg {
+        background-color: #334155;
+        border-radius: 4px;
+        width: 100px;
+        height: 8px;
+        display: inline-block;
+        margin-left: 10px;
+        vertical-align: middle;
+        overflow: hidden;
+    }
+    .progress-bar-fill {
+        background: linear-gradient(90deg, #a47e3c, #38bdf8);
+        height: 100%;
+        border-radius: 4px;
+    }
     </style>
 """, unsafe_allow_html=True)
 
@@ -115,7 +133,6 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
-    # Scale Coordinates to StatsBomb Dimensions (120x80)
     if 'X start' in df.columns:
         df['x_scaled'] = df['X start'] * 120
         df['y_scaled'] = df['Y start'] * 80
@@ -127,16 +144,19 @@ if uploaded_file is not None:
     selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
     team_df = df[df['Team'] == selected_team].copy()
 
-    # Dropdown Filter Configuration Units
+    # فلاتر التحكم في القوائم الجانبية
     with st.sidebar.expander("🎯 Passing Filters", expanded=True):
         selected_passes = st.multiselect("Pass Types:", ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"], default=["Normal Passes", "Crosses"])
         
     with st.sidebar.expander("🛡️ Defensive & Attack Filters", expanded=True):
         selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Goals"])
 
+    # زر تفعيل الخريطة الحرارية الذكية
+    st.sidebar.markdown("### 🗺️ Advanced Analytics")
+    enable_heatmap = st.sidebar.checkbox("🔥 Enable Tactical Heatmap", value=False)
+
     all_selected_layers = selected_passes + selected_defense
 
-    # --- Static Visual Map Legend ---
     def get_full_legend():
         return [
             mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success', markersize=8),
@@ -169,7 +189,6 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag
             drawn_action = False
             
-            # Passing Matrix Processing
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
                     if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
@@ -191,7 +210,6 @@ if uploaded_file is not None:
                     counts["total_passes"] += 1
                     if is_success: counts["success_passes"] += 1
 
-            # Defensive Matrix Processing
             elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام']):
                 if any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
                     if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=220, color='blue', linewidth=2.5, ax=ax)
@@ -206,17 +224,19 @@ if uploaded_file is not None:
                     if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=180, color='#2ecc71' if is_success else 'red', ax=ax)
                     if is_success: counts["ground_duels_won"] += 1
             
-            # Goal Operations
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
                 if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
                 counts["goals"] += 1
                 
         return counts
 
-    # --- Player Performance Summary Component ---
+    # --- Player Performance Summary Component with HTML Bars ---
     def render_player_summary_table(player_name, stats):
-        pass_acc = f"{(stats['success_passes']/stats['total_passes'])*100:.1f}%" if stats['total_passes'] > 0 else "0%"
-        cross_acc = f"{(stats['success_crosses']/stats['crosses'])*100:.1f}%" if stats['crosses'] > 0 else "0%"
+        p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
+        c_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
+        
+        pass_acc = f"{p_pct:.1f}%"
+        cross_acc = f"{c_pct:.1f}%"
         
         st.markdown(f"""
             <div class="summary-table-container">
@@ -226,19 +246,25 @@ if uploaded_file is not None:
                         <tr>
                             <th>Metric Category</th>
                             <th>Total Attempts</th>
-                            <th>Successful / Accuracy</th>
+                            <th>Visual Progress & Accuracy</th>
                         </tr>
                     </thead>
                     <tbody>
                         <tr>
                             <td><b>Total Passing</b></td>
                             <td>{stats['total_passes']}</td>
-                            <td><span class="stat-badge">{stats['success_passes']} ({pass_acc})</span></td>
+                            <td>
+                                <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {p_pct}%;"></div></div>
+                                <span class="stat-badge">{stats['success_passes']} ({pass_acc})</span>
+                            </td>
                         </tr>
                         <tr>
                             <td><b>Crosses</b></td>
                             <td>{stats['crosses']}</td>
-                            <td><span class="stat-badge">{stats['success_crosses']} ({cross_acc})</span></td>
+                            <td>
+                                <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {c_pct}%;"></div></div>
+                                <span class="stat-badge">{stats['success_crosses']} ({cross_acc})</span>
+                            </td>
                         </tr>
                         <tr>
                             <td><b>Through Balls</b></td>
@@ -283,15 +309,17 @@ if uploaded_file is not None:
         sel_player = st.selectbox("🎯 Focus Player:", player_list)
         p_df = team_df[team_df['Player'] == sel_player].copy()
         
-        # Calculate calculations for dynamic framework feed
         p_stats = process_and_draw_tactics(p_df, None, None, all_selected_layers, draw=False)
         render_player_summary_table(sel_player, p_stats)
         
-        # Base pitch drawing configuration
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig, ax = pitch.draw(figsize=(12, 8.5))
         add_logo(ax)
         
+        # رسم الخريطة الحرارية (Heatmap) لو اللاعب عنده داتا كافية والزرار متفعل
+        if enable_heatmap and len(p_df) > 1:
+            sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap='Oranges', fill=True, thresh=0.1, alpha=0.4, zorder=1, ax=ax)
+            
         process_and_draw_tactics(p_df, ax, pitch, all_selected_layers, draw=True)
         ax.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff')
         st.pyplot(fig)
@@ -302,6 +330,9 @@ if uploaded_file is not None:
         fig_t, ax_t = pitch_t.draw(figsize=(12.5, 9))
         add_logo(ax_t)
         
+        if enable_heatmap and len(team_df) > 1:
+            sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap='Blues', fill=True, thresh=0.1, alpha=0.3, zorder=1, ax=ax_t)
+            
         process_and_draw_tactics(team_df, ax_t, pitch_t, all_selected_layers, draw=True)
         ax_t.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff')
         st.pyplot(fig_t)
