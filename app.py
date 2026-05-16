@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
-import matplotlib.lines mlines
+import matplotlib.lines as mlines  # تم إصلاح السطر هنا يا بطل
 import seaborn as sns
 from PIL import Image
 import os
@@ -176,7 +176,7 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # محرك البحث الذكي وشبكة الصيد الواسعة للأكشنز الدفاعية والهجومية
+    # محرك البحث ورسم الماتريكس التكتيكي بالكامل
     def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True):
         matrix = {
             "total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0,
@@ -224,4 +224,79 @@ if uploaded_file is not None:
                 if is_success: matrix["aerial_duels_won"] += 1
 
             elif any(w in act for w in ['duel', 'التحام', 'صراع', 'أرضي', 'ground']) and 'aerial' not in act and "Ground Duels" in layers:
-                if draw_mode: pitch_obj.scatter(row.x_scaled, row
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
+                if is_success: matrix["ground_duels_won"] += 1
+            
+            if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
+                matrix["goals"] += 1
+                
+        return matrix
+
+    def render_player_summary_table(player_name, stats):
+        p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
+        c_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
+        st.markdown(f"""
+            <div class="summary-table-container">
+                <div class="summary-title">📊 Player Summary Profile: {player_name}</div>
+                <table class="player-summary-table">
+                    <thead><tr><th>Metric Category</th><th>Total Attempts</th><th>Visual Progress & Accuracy</th></tr></thead>
+                    <tbody>
+                        <tr><td><b>Total Passing</b></td><td>{stats['total_passes']}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {p_pct}%;"></div></div> <span class="stat-badge">{stats['success_passes']} ({p_pct:.1f}%)</span></td></tr>
+                        <tr><td><b>Crosses</b></td><td>{stats['crosses']}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {c_pct}%;"></div></div> <span class="stat-badge">{stats['success_crosses']} ({c_pct:.1f}%)</span></td></tr>
+                        <tr><td><b>Through Balls</b></td><td>{stats['through_balls']}</td><td><span class="stat-badge">{stats['through_balls']}</span></td></tr>
+                        <tr><td><b>Defensive Tackles (Tackles)</b></td><td>{stats['tackles']}</td><td><span class="stat-badge">{stats['tackles']}</span></td></tr>
+                        <tr><td><b>Clearances</b></td><td>{stats['clearances']}</td><td><span class="stat-badge">{stats['clearances']}</span></td></tr>
+                        <tr><td><b>Ground Duels Won</b></td><td>-</td><td><span class="stat-badge">{stats['ground_duels_won']} Won</span></td></tr>
+                        <tr><td><b>Aerial Duels Won</b></td><td>-</td><td><span class="stat-badge">{stats['aerial_duels_won']} Won</span></td></tr>
+                        <tr><td style="color: gold; font-weight: bold;">⚽ Goals Scored</td><td>-</td><td><span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">{stats['goals']} GOAL</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # --- التبويبات الفنية الثلاثية المنفصلة (The Master Setup) ---
+    tab1, tab2, tab3 = st.tabs(["📊 Player Profile Summary", "🔥 Tactical Heatmap", "🏃‍♂️ Player Actions Map"])
+
+    # تجهيز قوايم اللعيبة مدمج فيها لوجو EPS الإحترافي 🛡️
+    player_list = sorted(team_df['Player'].dropna().unique().tolist())
+    player_options = {p: f"🛡️ {p}" for p in player_list}
+
+    # 1. التابة الأولى: جدول الأداء والملخص الإحصائي
+    with tab1:
+        sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
+        p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
+        p_stats_t1 = parse_action_metrics(p_df_t1, None, None, all_selected_layers, draw_mode=False)
+        render_player_summary_table(sel_player_t1, p_stats_t1)
+
+    # 2. التابة الثانية: خريطة حرارية لوحدها بكامل عرض الشاشة وبألوان سكاوت لاب
+    with tab2:
+        sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
+        p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
+        
+        pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_h, ax_h = pitch_h.draw(figsize=(12, 9))
+        
+        scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
+        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
+        
+        if len(p_df_t2) > 1:
+            sns.kdeplot(x=p_df_t2['x_scaled'], y=p_df_t2['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.01, alpha=0.85, bw_method=0.3, zorder=1, ax=ax_h)
+        add_club_logo(ax_h)
+        st.pyplot(fig_h)
+
+    # 3. التابة الثالثة المستقلة: ملعب الأكشنز والتمريرات والإجراءات الدفاعية بالكامل
+    with tab3:
+        sel_player_t3 = st.selectbox("🎯 Focus Player (Actions):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
+        p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
+        
+        pitch_d = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_d, ax_d = pitch_d.draw(figsize=(12, 9))
+        
+        add_club_logo(ax_d)
+        parse_action_metrics(p_df_t3, ax_d, pitch_d, all_selected_layers, draw_mode=True)
+        ax_d.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+        st.pyplot(fig_d)
+
+else:
+    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
