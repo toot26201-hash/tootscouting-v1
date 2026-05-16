@@ -5,71 +5,41 @@ from mplsoccer import Pitch
 import matplotlib.lines as mlines
 from PIL import Image
 
-# 1. إعدادات الصفحة والتصميم العام (TootScouting Theme)
-st.set_page_config(page_title="TootScouting | Tactical Lab", layout="wide")
+# 1. Page Config & Custom Styling (ScoutLab Look & Feel)
+st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
-# تصميم الكارت الاحترافي باستخدام CSS
 st.markdown("""
     <style>
     .reportview-container { background: #f8f9fa; }
     .main .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
     
-    /* تصميم كارت اللاعب */
-    .player-card {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-        color: white;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.3);
-        margin-bottom: 20px;
-        font-family: 'Source Sans Pro', sans-serif;
-    }
-    .card-header {
+    /* تصميم صف كروت الإحصائيات الجانبية (KPI Cards) */
+    .kpi-container {
         display: flex;
-        align-items: center;
         gap: 15px;
-        border-bottom: 1px solid #334155;
-        padding-bottom: 12px;
-        margin-bottom: 15px;
+        margin-bottom: 20px;
+        width: 100%;
     }
-    .player-icon {
-        font-size: 40px;
-        background: #334155;
-        padding: 10px;
-        border-radius: 50%;
-    }
-    .player-info h3 {
-        margin: 0;
-        color: #f8fafc;
-        font-size: 1.4rem;
-        font-weight: 700;
-    }
-    .player-info p {
-        margin: 2px 0 0 0;
-        color: #94a3b8;
-        font-size: 0.9rem;
-    }
-    .stats-grid {
-        display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: 10px;
+    .kpi-card {
+        flex: 1;
+        background: white;
+        padding: 15px;
+        border-radius: 8px;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        border-left: 5px solid #1e293b;
         text-align: center;
     }
-    .stat-box {
-        background: #1e293b;
-        padding: 10px;
-        border-radius: 8px;
-        border: 1px solid #334155;
+    .kpi-value {
+        font-size: 1.8rem;
+        font-weight: 700;
+        color: #1e293b;
     }
-    .stat-value {
-        font-size: 1.2rem;
-        font-weight: bold;
-        color: #38bdf8;
-    }
-    .stat-label {
-        font-size: 0.75rem;
-        color: #94a3b8;
-        margin-top: 4px;
+    .kpi-label {
+        font-size: 0.85rem;
+        color: #64748b;
+        font-weight: 600;
+        text-transform: uppercase;
+        margin-top: 5px;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -81,15 +51,17 @@ def add_logo(ax):
     except:
         pass
 
-st.title("🔬 TootScouting Tactical Dashboard")
-st.sidebar.markdown("## 🛠️ Tactical Control Unit")
+st.title("🔬 TootScouting | Advanced Tactical Dashboard")
 
+# --- Sidebar Control Panel ---
+st.sidebar.markdown("## 🛠️ Tactical Control Unit")
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
+    # Scale Coordinates to StatsBomb (120x80)
     if 'X start' in df.columns:
         df['x_scaled'] = df['X start'] * 120
         df['y_scaled'] = df['Y start'] * 80
@@ -101,23 +73,16 @@ if uploaded_file is not None:
     selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
     team_df = df[df['Team'] == selected_team].copy()
 
-    # فلاتر التحكم التكتيكية في الـ Sidebar
+    # Filters Inside Expanders
     with st.sidebar.expander("🎯 Passing Filters", expanded=True):
-        selected_passes = st.multiselect(
-            "Choose Pass Types:",
-            ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"],
-            default=["Normal Passes", "Crosses"]
-        )
+        selected_passes = st.multiselect("Pass Types:", ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"], default=["Normal Passes", "Crosses"])
         
     with st.sidebar.expander("🛡️ Defensive & Attack Filters", expanded=True):
-        selected_defense = st.multiselect(
-            "Choose Actions:",
-            ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"],
-            default=["Tackles", "Ground Duels", "Goals"]
-        )
+        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Goals"])
 
     all_selected_layers = selected_passes + selected_defense
 
+    # --- Master Legend ---
     def get_full_legend():
         return [
             mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success', markersize=8),
@@ -134,6 +99,7 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
+    # --- Drawing Engine ---
     def draw_actions(dataframe, ax, pitch_obj, layers):
         for i, row in dataframe.iterrows():
             act = str(row['Action']).lower()
@@ -162,6 +128,25 @@ if uploaded_file is not None:
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
                 pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
 
+    # --- دالة حساب وعرض الكروت فوق الملعب (KPI Section) ---
+    def display_kpi_cards(dataframe):
+        total_p = len(dataframe[dataframe['Action'].str.lower().str.contains('pass', na=False)])
+        succ_p = len(dataframe[(dataframe['Action'].str.lower().str.contains('pass', na=False)) & (dataframe['Tags'].str.lower().str.contains('success', na=False))])
+        accuracy = f"{(succ_p/total_p)*100:.1f}%" if total_p > 0 else "0%"
+        
+        tackles = len(dataframe[dataframe['Action'].str.lower().str.contains('tackle|inter', na=False)])
+        goals = len(dataframe[dataframe['Tags'].str.lower().str.contains('goal', na=False)])
+        
+        st.markdown(f"""
+            <div class="kpi-container">
+                <div class="kpi-card"><div class="kpi-value">{total_p}</div><div class="kpi-label">Total Passes</div></div>
+                <div class="kpi-card"><div class="kpi-value">{accuracy}</div><div class="kpi-label">Pass Accuracy</div></div>
+                <div class="kpi-card"><div class="kpi-value">{tackles}</div><div class="kpi-label">Def. Actions</div></div>
+                <div class="kpi-card"><div class="kpi-value">{goals}</div><div class="kpi-label">Goals Scored</div></div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    # --- Main Application Tabs ---
     tab1, tab2 = st.tabs(["👤 Individual Player Lab", "👥 Team Strategy Lab"])
 
     with tab1:
@@ -169,40 +154,8 @@ if uploaded_file is not None:
         sel_player = st.selectbox("🎯 Focus Player:", player_list)
         p_df = team_df[team_df['Player'] == sel_player].copy()
         
-        # --- حساب الـ Stats تلقائياً للكارت من واقع الداتا ---
-        total_passes = len(p_df[p_df['Action'].str.lower().str.contains('pass', na=False)])
-        succ_passes = len(p_df[(p_df['Action'].str.lower().str.contains('pass', na=False)) & (p_df['Tags'].str.lower().str.contains('success', na=False))])
-        pass_acc = f"{(succ_passes/total_passes)*100:.0f}%" if total_passes > 0 else "0%"
-        
-        total_tackles = len(p_df[p_df['Action'].str.lower().str.contains('tackle|inter', na=False)])
-        total_duels = len(p_df[p_df['Action'].str.lower().str.contains('duel', na=False)])
-        
-        # --- إنشاء كارت اللاعب بالـ HTML المخصص للمشروع ---
-        st.markdown(f"""
-            <div class="player-card">
-                <div class="card-header">
-                    <div class="player-icon">🏃‍♂️</div>
-                    <div class="player-info">
-                        <h3>{sel_player}</h3>
-                        <p>Team: {selected_team} | Tactical Profile</p>
-                    </div>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-box">
-                        <div class="stat-value">{total_passes}</div>
-                        <div class="stat-label">Total Passes</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-value">{pass_acc}</div>
-                        <div class="stat-label">Pass Acc.</div>
-                    </div>
-                    <div class="stat-box">
-                        <div class="stat-value">{total_tackles}</div>
-                        <div class="stat-label">Def. Actions</div>
-                    </div>
-                </div>
-            </div>
-        """, unsafe_allow_html=True)
+        # عرض الكروت الخاصة باللاعب
+        display_kpi_cards(p_df)
         
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig, ax = pitch.draw(figsize=(12, 8.5))
@@ -214,6 +167,10 @@ if uploaded_file is not None:
 
     with tab2:
         st.subheader(f"Tactical Distribution: {selected_team}")
+        
+        # عرض الكروت الخاصة بالفريق بالكامل
+        display_kpi_cards(team_df)
+        
         pitch_t = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_t, ax_t = pitch_t.draw(figsize=(12.5, 9))
         add_logo(ax_t)
@@ -223,4 +180,4 @@ if uploaded_file is not None:
         st.pyplot(fig_t)
 
 else:
-    st.info("👋 Welcome to TootScouting Lab! Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
+    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
