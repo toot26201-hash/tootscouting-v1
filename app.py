@@ -2,7 +2,7 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
-import matplotlib.lines as mlines  # تم إصلاح السطر هنا يا بطل
+import matplotlib.lines as mlines
 import seaborn as sns
 from PIL import Image
 import os
@@ -255,21 +255,26 @@ if uploaded_file is not None:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- التبويبات الفنية الثلاثية المنفصلة (The Master Setup) ---
-    tab1, tab2, tab3 = st.tabs(["📊 Player Profile Summary", "🔥 Tactical Heatmap", "🏃‍♂️ Player Actions Map"])
+    # --- التبويبات الفنية الأربعة المنفصلة (The Master Setup 2026) ---
+    tab1, tab2, tab3, tab4 = st.tabs([
+        "📊 Player Profile Summary", 
+        "🔥 Player Tactical Heatmap", 
+        "🏃‍♂️ Player Actions Map",
+        "👥 Team Strategy Lab"
+    ])
 
     # تجهيز قوايم اللعيبة مدمج فيها لوجو EPS الإحترافي 🛡️
     player_list = sorted(team_df['Player'].dropna().unique().tolist())
     player_options = {p: f"🛡️ {p}" for p in player_list}
 
-    # 1. التابة الأولى: جدول الأداء والملخص الإحصائي
+    # 1. التابة الأولى: جدول أداء اللاعب الفردي بالبارات المضخمة
     with tab1:
         sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
         p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
         p_stats_t1 = parse_action_metrics(p_df_t1, None, None, all_selected_layers, draw_mode=False)
         render_player_summary_table(sel_player_t1, p_stats_t1)
 
-    # 2. التابة الثانية: خريطة حرارية لوحدها بكامل عرض الشاشة وبألوان سكاوت لاب
+    # 2. التابة الثانية: خريطة حرارية للفردي بكامل العرض وبألوان سكاوت لاب النارية
     with tab2:
         sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
         p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
@@ -285,7 +290,7 @@ if uploaded_file is not None:
         add_club_logo(ax_h)
         st.pyplot(fig_h)
 
-    # 3. التابة الثالثة المستقلة: ملعب الأكشنز والتمريرات والإجراءات الدفاعية بالكامل
+    # 3. التابة الثالثة: خريطة إجراءات اللاعب وأسهمه الدفاعية لوحدها تماماً
     with tab3:
         sel_player_t3 = st.selectbox("🎯 Focus Player (Actions):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
         p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
@@ -297,6 +302,34 @@ if uploaded_file is not None:
         parse_action_metrics(p_df_t3, ax_d, pitch_d, all_selected_layers, draw_mode=True)
         ax_d.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_d)
+
+    # 4. التابة الرابعة الجديدة: تابة التحاليل الجماعية للفريق بالكامل (Side-by-Side)
+    with tab4:
+        st.subheader(f"👥 Global Team Level Analysis: {selected_team}")
+        col_t1, col_t2 = st.columns(2)
+        
+        with col_t1:
+            st.markdown("<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Heatmap</h3>", unsafe_allow_html=True)
+            pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+            fig_th, ax_th = pitch_th.draw(figsize=(8, 6))
+            
+            scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
+            scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
+            
+            if len(team_df) > 1:
+                sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.01, alpha=0.82, bw_method=0.3, zorder=1, ax=ax_th)
+            add_club_logo(ax_th)
+            st.pyplot(fig_th)
+            
+        with col_t2:
+            st.markdown("<h3 style='text-align: center; color: #a47e3c;'>🛡️ Team Actions Map</h3>", unsafe_allow_html=True)
+            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+            fig_td, ax_td = pitch_td.draw(figsize=(8, 6))
+            
+            add_club_logo(ax_td)
+            parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
+            ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='x-small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+            st.pyplot(fig_td)
 
 else:
     st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
