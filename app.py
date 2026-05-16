@@ -5,58 +5,64 @@ from mplsoccer import Pitch
 import matplotlib.lines as mlines
 from PIL import Image
 
-# 1. إعدادات الصفحة والأسلوب الاحترافي (Premium ScoutLab Theme)
+# 1. Page Config & Strict Dark Premium Theme (Matching the Tactical Card)
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
 st.markdown("""
     <style>
-    .reportview-container { background: #f8f9fa; }
-    .main .block-container { padding-top: 1.5rem; padding-bottom: 1.5rem; }
+    /* Global Background and Text Color */
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+        color: #f8fafc !important;
+    }
     
-    /* تصميم صف كروت الإحصائيات الجانبية (KPI Cards) */
-    .kpi-container {
-        display: flex;
-        gap: 15px;
-        margin-bottom: 20px;
-        width: 100%;
+    /* Sidebar Styling */
+    [data-testid="stSidebar"] {
+        background-color: #0f172a !important;
+        border-right: 1px solid #334155;
     }
-    .kpi-card {
-        flex: 1;
-        background: white;
-        padding: 15px;
+    
+    /* Text Typography Upgrades */
+    h1, h2, h3, p, span, label, .stMarkdown {
+        color: #f8fafc !important;
+    }
+    
+    /* Custom Navigation Tabs styling */
+    .stTabs [data-baseweb="tab-list"] {
+        gap: 12px;
+        background-color: #0f172a;
+        padding: 8px;
         border-radius: 8px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
-        border-left: 5px solid #1e293b;
-        text-align: center;
     }
-    .kpi-value {
-        font-size: 1.8rem;
-        font-weight: 700;
-        color: #1e293b;
-    }
-    .kpi-label {
-        font-size: 0.85rem;
-        color: #64748b;
+    .stTabs [data-baseweb="tab"] {
+        background-color: #1e293b;
+        border: 1px solid #334155;
+        border-radius: 6px;
+        padding: 10px 20px;
         font-weight: 600;
-        text-transform: uppercase;
-        margin-top: 5px;
+        color: #94a3b8 !important;
+    }
+    .stTabs [aria-selected="true"] {
+        background-color: #a47e3c !important; 
+        color: #ffffff !important;
+        border-color: #a47e3c !important;
     }
 
-    /* تصميم جدول ملخص أداء اللاعب (Player Summary Table) */
+    /* Player Performance Summary Table Theme */
     .summary-table-container {
-        background: white;
-        padding: 20px;
-        border-radius: 8px;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+        background: #1e293b;
+        padding: 24px;
+        border-radius: 12px;
+        box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.5);
         margin-bottom: 25px;
-        border: 1px solid #e2e8f0;
+        border: 1px solid #a47e3c;
     }
     .summary-title {
-        font-size: 1.2rem;
+        font-size: 1.3rem;
         font-weight: 700;
-        color: #0f172a;
-        margin-bottom: 15px;
-        border-bottom: 2px solid #334155;
+        color: #f8fafc;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #a47e3c;
         padding-bottom: 8px;
     }
     .player-summary-table {
@@ -65,28 +71,29 @@ st.markdown("""
         text-align: left;
     }
     .player-summary-table th {
-        background-color: #f1f5f9;
-        color: #475569;
+        background-color: #0f172a;
+        color: #94a3b8;
         font-weight: 600;
-        padding: 12px;
+        padding: 14px;
         font-size: 0.9rem;
-        border-bottom: 1px solid #e2e8f0;
+        border-bottom: 2px solid #334155;
     }
     .player-summary-table td {
-        padding: 12px;
+        padding: 14px;
         font-size: 0.95rem;
-        color: #334155;
-        border-bottom: 1px solid #f1f5f9;
+        color: #e2e8f0;
+        border-bottom: 1px solid #334155;
     }
     .player-summary-table tr:hover {
-        background-color: #f8fafc;
+        background-color: rgba(164, 126, 60, 0.1);
     }
     .stat-badge {
-        background-color: #e2e8f0;
-        color: #1e293b;
-        padding: 4px 8px;
-        border-radius: 4px;
-        font-weight: bold;
+        background-color: #334155;
+        color: #38bdf8;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        border: 1px solid rgba(56, 189, 248, 0.3);
     }
     </style>
 """, unsafe_allow_html=True)
@@ -98,9 +105,9 @@ def add_logo(ax):
     except:
         pass
 
-st.title("🔬 TootScouting | Advanced Tactical Dashboard")
+st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 
-# --- الـ Sidebar الجانبي للفلاتر ---
+# --- Sidebar Controls ---
 st.sidebar.markdown("## 🛠️ Tactical Control Unit")
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
 
@@ -108,6 +115,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
+    # Scale Coordinates to StatsBomb Dimensions (120x80)
     if 'X start' in df.columns:
         df['x_scaled'] = df['X start'] * 120
         df['y_scaled'] = df['Y start'] * 80
@@ -119,6 +127,7 @@ if uploaded_file is not None:
     selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
     team_df = df[df['Team'] == selected_team].copy()
 
+    # Dropdown Filter Configuration Units
     with st.sidebar.expander("🎯 Passing Filters", expanded=True):
         selected_passes = st.multiselect("Pass Types:", ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"], default=["Normal Passes", "Crosses"])
         
@@ -127,6 +136,7 @@ if uploaded_file is not None:
 
     all_selected_layers = selected_passes + selected_defense
 
+    # --- Static Visual Map Legend ---
     def get_full_legend():
         return [
             mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success', markersize=8),
@@ -143,7 +153,7 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # --- محرك الرسم التكتيكي وحساب الأرقام بدقة ---
+    # --- Pitch Graphics Drawing Engine ---
     def process_and_draw_tactics(dataframe, ax, pitch_obj, layers, draw=True):
         counts = {
             "total_passes": 0, "success_passes": 0,
@@ -159,6 +169,7 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag
             drawn_action = False
             
+            # Passing Matrix Processing
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
                     if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
@@ -180,6 +191,7 @@ if uploaded_file is not None:
                     counts["total_passes"] += 1
                     if is_success: counts["success_passes"] += 1
 
+            # Defensive Matrix Processing
             elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام']):
                 if any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
                     if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=220, color='blue', linewidth=2.5, ax=ax)
@@ -194,13 +206,14 @@ if uploaded_file is not None:
                     if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=180, color='#2ecc71' if is_success else 'red', ax=ax)
                     if is_success: counts["ground_duels_won"] += 1
             
+            # Goal Operations
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
                 if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
                 counts["goals"] += 1
                 
         return counts
 
-    # --- دالة عرض الـ Player Summary الجدول الاحترافي ---
+    # --- Player Performance Summary Component ---
     def render_player_summary_table(player_name, stats):
         pass_acc = f"{(stats['success_passes']/stats['total_passes'])*100:.1f}%" if stats['total_passes'] > 0 else "0%"
         cross_acc = f"{(stats['success_crosses']/stats['crosses'])*100:.1f}%" if stats['crosses'] > 0 else "0%"
@@ -218,42 +231,42 @@ if uploaded_file is not None:
                     </thead>
                     <tbody>
                         <tr>
-                            <td><b>Total Passing</b> (تمريرات إجمالية)</td>
+                            <td><b>Total Passing</b></td>
                             <td>{stats['total_passes']}</td>
                             <td><span class="stat-badge">{stats['success_passes']} ({pass_acc})</span></td>
                         </tr>
                         <tr>
-                            <td><b>Crosses</b> (العرضيات)</td>
+                            <td><b>Crosses</b></td>
                             <td>{stats['crosses']}</td>
                             <td><span class="stat-badge">{stats['success_crosses']} ({cross_acc})</span></td>
                         </tr>
                         <tr>
-                            <td><b>Through Balls</b> (التمريرات البينية)</td>
+                            <td><b>Through Balls</b></td>
                             <td>{stats['through_balls']}</td>
                             <td><span class="stat-badge">{stats['through_balls']}</span></td>
                         </tr>
                         <tr>
-                            <td><b>Defensive Tackles</b> (الافتكاكات الناجحة)</td>
+                            <td><b>Defensive Tackles</b></td>
                             <td>{stats['tackles']}</td>
                             <td><span class="stat-badge">{stats['tackles']}</span></td>
                         </tr>
                         <tr>
-                            <td><b>Clearances</b> (التشتيت)</td>
+                            <td><b>Clearances</b></td>
                             <td>{stats['clearances']}</td>
                             <td><span class="stat-badge">{stats['clearances']}</span></td>
                         </tr>
                         <tr>
-                            <td><b>Ground Duels Won</b> (الالتحامات الأرضية)</td>
+                            <td><b>Ground Duels Won</b></td>
                             <td>-</td>
                             <td><span class="stat-badge">{stats['ground_duels_won']} Won</span></td>
                         </tr>
                         <tr>
-                            <td><b>Aerial Duels Won</b> (الالتحامات الهوائية)</td>
+                            <td><b>Aerial Duels Won</b></td>
                             <td>-</td>
                             <td><span class="stat-badge">{stats['aerial_duels_won']} Won</span></td>
                         </tr>
                         <tr>
-                            <td style="color: #gold; font-weight: bold;">⚽ Goals Scored (الأهداف)</td>
+                            <td style="color: #gold; font-weight: bold;">⚽ Goals Scored</td>
                             <td>-</td>
                             <td><span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">{stats['goals']} GOAL</span></td>
                         </tr>
@@ -262,7 +275,7 @@ if uploaded_file is not None:
             </div>
         """, unsafe_allow_html=True)
 
-    # --- التبويبات الفنية ---
+    # --- System Application Tabs ---
     tab1, tab2 = st.tabs(["👤 Individual Player Lab", "👥 Team Strategy Lab"])
 
     with tab1:
@@ -270,13 +283,11 @@ if uploaded_file is not None:
         sel_player = st.selectbox("🎯 Focus Player:", player_list)
         p_df = team_df[team_df['Player'] == sel_player].copy()
         
-        # 1. حساب الأرقام بناء على الفلاتر النشطة
+        # Calculate calculations for dynamic framework feed
         p_stats = process_and_draw_tactics(p_df, None, None, all_selected_layers, draw=False)
-        
-        # 2. عرض الـ Player Summary الاحترافي الجديد بالكامل
         render_player_summary_table(sel_player, p_stats)
         
-        # 3. رسم الملعب التكتيكي بوضوح
+        # Base pitch drawing configuration
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig, ax = pitch.draw(figsize=(12, 8.5))
         add_logo(ax)
