@@ -5,7 +5,7 @@ from mplsoccer import Pitch
 import matplotlib.lines as mlines
 from PIL import Image
 
-# 1. Page Config & Custom Styling (ScoutLab Look & Feel)
+# 1. Page Config & Custom Styling (ScoutLab Premium Layout)
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
 st.markdown("""
@@ -99,54 +99,76 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # --- Drawing Engine ---
-    def draw_actions(dataframe, ax, pitch_obj, layers):
+    # --- Drawing Engine & Live Counting ---
+    def process_and_draw_tactics(dataframe, ax, pitch_obj, layers, draw=True):
+        counts = {"passes": 0, "success_passes": 0, "defense": 0, "goals": 0}
+        
         for i, row in dataframe.iterrows():
             act = str(row['Action']).lower()
             tag = str(row['Tags']).lower()
             is_success = 'success' in tag or 'ناجح' in tag
+            drawn_action = False
             
+            # 1. Passes Logic
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
+                    drawn_action = True
                 elif 'through' in tag and "Through Balls" in layers:
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax)
+                    drawn_action = True
                 elif 'corner' in tag and "Corners" in layers:
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
+                    drawn_action = True
                 elif "Normal Passes" in layers and not any(k in tag for k in ['cross', 'through', 'corner', 'free kick']):
-                    pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5)
+                    drawn_action = True
+                
+                if drawn_action:
+                    counts["passes"] += 1
+                    if is_success: counts["success_passes"] += 1
 
-            elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
-                pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=220, color='blue', linewidth=2.5, ax=ax)
-            elif 'clear' in act and "Clearances" in layers:
-                pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=180, color='purple', ax=ax)
-            elif 'aerial' in act and "Aerial Duels" in layers:
-                pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=200, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax)
-            elif 'duel' in act and 'aerial' not in act and "Ground Duels" in layers:
-                pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=180, color='#2ecc71' if is_success else 'red', ax=ax)
+            # 2. Defensive Action Logic (Tackles, Clearances, Duels)
+            elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام', 'صراع']):
+                if any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=220, color='blue', linewidth=2.5, ax=ax)
+                    drawn_action = True
+                elif 'clear' in act and "Clearances" in layers:
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=180, color='purple', ax=ax)
+                    drawn_action = True
+                elif 'aerial' in act and "Aerial Duels" in layers:
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=200, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax)
+                    drawn_action = True
+                elif 'duel' in act and 'aerial' not in act and "Ground Duels" in layers:
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=180, color='#2ecc71' if is_success else 'red', ax=ax)
+                    drawn_action = True
+                
+                if drawn_action:
+                    counts["defense"] += 1
             
+            # 3. Goals Logic
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
-                pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
+                if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
+                counts["goals"] += 1
+                
+        return counts
 
-    # --- دالة حساب وعرض الكروت فوق الملعب (KPI Section) ---
-    def display_kpi_cards(dataframe):
-        total_p = len(dataframe[dataframe['Action'].str.lower().str.contains('pass', na=False)])
-        succ_p = len(dataframe[(dataframe['Action'].str.lower().str.contains('pass', na=False)) & (dataframe['Tags'].str.lower().str.contains('success', na=False))])
+    # --- Live KPI Cards Render ---
+    def render_kpi_cards(stats_dict):
+        total_p = stats_dict["passes"]
+        succ_p = stats_dict["success_passes"]
         accuracy = f"{(succ_p/total_p)*100:.1f}%" if total_p > 0 else "0%"
-        
-        tackles = len(dataframe[dataframe['Action'].str.lower().str.contains('tackle|inter', na=False)])
-        goals = len(dataframe[dataframe['Tags'].str.lower().str.contains('goal', na=False)])
         
         st.markdown(f"""
             <div class="kpi-container">
-                <div class="kpi-card"><div class="kpi-value">{total_p}</div><div class="kpi-label">Total Passes</div></div>
+                <div class="kpi-card"><div class="kpi-value">{total_p}</div><div class="kpi-label">Active Passes</div></div>
                 <div class="kpi-card"><div class="kpi-value">{accuracy}</div><div class="kpi-label">Pass Accuracy</div></div>
-                <div class="kpi-card"><div class="kpi-value">{tackles}</div><div class="kpi-label">Def. Actions</div></div>
-                <div class="kpi-card"><div class="kpi-value">{goals}</div><div class="kpi-label">Goals Scored</div></div>
+                <div class="kpi-card"><div class="kpi-value">{stats_dict["defense"]}</div><div class="kpi-label">Def. Actions</div></div>
+                <div class="kpi-card"><div class="kpi-value">{stats_dict["goals"]}</div><div class="kpi-label">Goals Shown</div></div>
             </div>
         """, unsafe_allow_html=True)
 
-    # --- Main Application Tabs ---
+    # --- Main Tabs ---
     tab1, tab2 = st.tabs(["👤 Individual Player Lab", "👥 Team Strategy Lab"])
 
     with tab1:
@@ -154,28 +176,31 @@ if uploaded_file is not None:
         sel_player = st.selectbox("🎯 Focus Player:", player_list)
         p_df = team_df[team_df['Player'] == sel_player].copy()
         
-        # عرض الكروت الخاصة باللاعب
-        display_kpi_cards(p_df)
+        # خطوة أولى: حساب الأرقام بناء على الفلاتر النشطة لتغذية الكروت
+        p_stats = process_and_draw_tactics(p_df, None, None, all_selected_layers, draw=False)
+        render_kpi_cards(p_stats)
         
+        # خطوة ثانية: رسم السهم والنقط على الملعب
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig, ax = pitch.draw(figsize=(12, 8.5))
         add_logo(ax)
         
-        draw_actions(p_df, ax, pitch, all_selected_layers)
+        process_and_draw_tactics(p_df, ax, pitch, all_selected_layers, draw=True)
         ax.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff')
         st.pyplot(fig)
 
     with tab2:
         st.subheader(f"Tactical Distribution: {selected_team}")
         
-        # عرض الكروت الخاصة بالفريق بالكامل
-        display_kpi_cards(team_df)
+        # حساب الأرقام للفريق بالكامل
+        t_stats = process_and_draw_tactics(team_df, None, None, all_selected_layers, draw=False)
+        render_kpi_cards(t_stats)
         
         pitch_t = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_t, ax_t = pitch_t.draw(figsize=(12.5, 9))
         add_logo(ax_t)
         
-        draw_actions(team_df, ax_t, pitch_t, all_selected_layers)
+        process_and_draw_tactics(team_df, ax_t, pitch_t, all_selected_layers, draw=True)
         ax_t.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff')
         st.pyplot(fig_t)
 
