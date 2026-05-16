@@ -7,7 +7,7 @@ import seaborn as sns
 from PIL import Image
 import os
 
-# 1. Page Config & Strict Dark Premium Theme (TootScouting Global Style)
+# 1. Page Config & Strict Dark Premium Theme for UI
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
 st.markdown("""
@@ -117,14 +117,14 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# دالة دمج لوجو النادي الجديد EPS في السنتر بشكل احترافي شفاف
+# دالة دمج لوجو النادي EPS في السنتر بشكل شفاف واحترافي
 def add_club_logo(ax):
-    logo_filename = 'Espoon Palloseura_logo.png'
+    logo_filename = 'Espoon_Palloseura_logo.png'
     if os.path.exists(logo_filename):
         try:
             img = Image.open(logo_filename)
             # وضع اللوجو في دائرة السنتر بالظبط بمظهر المنصات العالمية
-            ax.imshow(img, extent=[45, 75, 25, 55], alpha=0.22, zorder=2)
+            ax.imshow(img, extent=[45, 75, 25, 55], alpha=0.25, zorder=2)
         except:
             pass
 
@@ -149,7 +149,6 @@ if uploaded_file is not None:
     selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
     team_df = df[df['Team'] == selected_team].copy()
 
-    # القوائم الجانبية للفلاتر والأكشنز الدفاعية كاملة
     with st.sidebar.expander("🎯 Passing Filters", expanded=True):
         selected_passes = st.multiselect("Pass Types:", ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"], default=["Normal Passes", "Crosses"])
         
@@ -190,7 +189,6 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag
             drawn_action = False
             
-            # 1. التمريرات والعرضيات والبينيات
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
                     if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
@@ -212,7 +210,6 @@ if uploaded_file is not None:
                     counts["total_passes"] += 1
                     if is_success: counts["success_passes"] += 1
 
-            # 2. الإجراءات الدفاعية (Tackles, Clearances, Duels) مرسومة بـ zorder أعلى لتكون فوق الـ Heatmap
             elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام']):
                 if any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
                     if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
@@ -227,7 +224,6 @@ if uploaded_file is not None:
                     if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
                     if is_success: counts["ground_duels_won"] += 1
             
-            # الأهداف
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
                 if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
                 counts["goals"] += 1
@@ -238,9 +234,6 @@ if uploaded_file is not None:
     def render_player_summary_table(player_name, stats):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
         c_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
-        
-        pass_acc = f"{p_pct:.1f}%"
-        cross_acc = f"{c_pct:.1f}%"
         
         st.markdown(f"""
             <div class="summary-table-container">
@@ -259,7 +252,7 @@ if uploaded_file is not None:
                             <td>{stats['total_passes']}</td>
                             <td>
                                 <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {p_pct}%;"></div></div>
-                                <span class="stat-badge">{stats['success_passes']} ({pass_acc})</span>
+                                <span class="stat-badge">{stats['success_passes']} ({p_pct:.1f}%)</span>
                             </td>
                         </tr>
                         <tr>
@@ -267,7 +260,7 @@ if uploaded_file is not None:
                             <td>{stats['crosses']}</td>
                             <td>
                                 <div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {c_pct}%;"></div></div>
-                                <span class="stat-badge">{stats['success_crosses']} ({cross_acc})</span>
+                                <span class="stat-badge">{stats['success_crosses']} ({c_pct:.1f}%)</span>
                             </td>
                         </tr>
                         <tr>
@@ -316,26 +309,28 @@ if uploaded_file is not None:
         p_stats = process_and_draw_tactics(p_df, None, None, all_selected_layers, draw=False)
         render_player_summary_table(sel_player, p_stats)
         
-        # رسم الملعب
-        pitch = Pitch(pitch_type='statsbomb', pitch_color='#111827', line_color='#374151', linestyle='--', positional=True, positional_color='#1f2937', linewidth=1.2)
+        # --- تعديل الملعب: رجع أبيض دايماً وخطوط تكتيكية مريحة للعين ---
+        pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig, ax = pitch.draw(figsize=(12, 8.5))
         
-        # 1. أولاً: رسم الخريطة الحرارية النارية في الخلفية (YlOrRd تعطي تدرج من الأصفر للبرتقالي للأحمر الناري)
+        # 1. الخريطة الحرارية في الخلفية
         if len(p_df) > 1:
             sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap='YlOrRd', fill=True, thresh=0.05, alpha=0.55, zorder=1, ax=ax)
             
-        # 2. ثانياً: وضع لوجو EPS فوق الخريطة وتحت الأكشنز
+        # 2. لوجو النادي EPS الشفاف في دائرة السنتر
         add_club_logo(ax)
             
-        # 3. ثالثاً: رسم الإجراءات الدفاعية والهجومية لتكون في الصدارة واضحة جداً
+        # 3. الأكشنز والأسهم الدفاعية في الصدارة فوق كل شيء
         process_and_draw_tactics(p_df, ax, pitch, all_selected_layers, draw=True)
         
-        ax.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
+        ax.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig)
 
     with tab2:
         st.subheader(f"Tactical Distribution: {selected_team}")
-        pitch_t = Pitch(pitch_type='statsbomb', pitch_color='#111827', line_color='#374151', linestyle='--', positional=True, positional_color='#1f2937', linewidth=1.2)
+        
+        # ملعب المجموعات أبيض دايماً
+        pitch_t = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_t, ax_t = pitch_t.draw(figsize=(12.5, 9))
         
         if len(team_df) > 1:
@@ -343,7 +338,7 @@ if uploaded_file is not None:
             
         add_club_logo(ax_t)
         process_and_draw_tactics(team_df, ax_t, pitch_t, all_selected_layers, draw=True)
-        ax_t.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
+        ax_t.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_t)
 
 else:
