@@ -10,15 +10,24 @@ import matplotlib.colors as mcolors
 import numpy as np
 import base64
 
-# دالة ذكية ومضمونة لقراءة مسار اللوجو وتحويله لـ Base64 في أول الكود
+# دالة ذكية ومضمونة 100% لقراءة مسار اللوجو وتحويله لـ Base64 للكارت فقط
 def get_base64_logo():
     current_dir = os.path.dirname(__file__)
-    logo_filename = os.path.join(current_dir, 'Espoon_Palloseura_logo.png')
     
-    if not os.path.exists(logo_filename):
-        logo_filename = 'Espoon_Palloseura_logo.png'
-        
-    if os.path.exists(logo_filename):
+    possible_paths = [
+        os.path.join(current_dir, 'Espoon_Palloseura_logo.png'),
+        os.path.join(current_dir, 'espoon_palloseura_logo.png'),
+        'Espoon_Palloseura_logo.png',
+        'espoon_palloseura_logo.png'
+    ]
+    
+    logo_filename = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            logo_filename = path
+            break
+            
+    if logo_filename and os.path.exists(logo_filename):
         with open(logo_filename, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode()
     return None
@@ -66,7 +75,7 @@ st.markdown("""
         border-color: #a47e3c !important;
     }
 
-    /* PREMIUM SCOUTLAB PLAYER CARD DESIGN WITH LOGO DETECT */
+    /* PREMIUM SCOUTLAB PLAYER CARD DESIGN */
     .premium-player-card {
         background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
         border: 2px solid #a47e3c;
@@ -91,7 +100,7 @@ st.markdown("""
         height: 110px;
         border-radius: 50%;
         border: 3px solid #a47e3c;
-        background-color: #ffffff; /* خلفية بيضاء تظهر تفاصيل اللوجو بوضوح */
+        background-color: #ffffff !important; 
         display: flex;
         align-items: center;
         justify-content: center;
@@ -222,20 +231,6 @@ st.markdown("""
     }
     </style>
 """, unsafe_allow_html=True)
-
-# دالة دمج لوجو النادي الشفاف في سنتر الملعب
-def add_club_logo(ax):
-    current_dir = os.path.dirname(__file__)
-    logo_filename = os.path.join(current_dir, 'Espoon_Palloseura_logo.png')
-    if not os.path.exists(logo_filename):
-        logo_filename = 'Espoon_Palloseura_logo.png'
-        
-    if os.path.exists(logo_filename):
-        try:
-            img = Image.open(logo_filename)
-            ax.imshow(img, extent=[45, 75, 25, 55], alpha=0.18, zorder=2)
-        except:
-            pass
 
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 
@@ -475,7 +470,7 @@ if uploaded_file is not None:
     player_list = sorted(team_df['Player'].dropna().unique().tolist())
     player_options = {p: f"🛡️ {p}" for p in player_list}
 
-    # 1. التابة الأولى: تم إصلاح المتغير بالكامل sel_player_t1 هنا يا بطل!
+    # 1. التابة الأولى: الكارت الفخم وجدول البارات بالكامل تفاعلي لايف
     with tab1:
         sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
         p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
@@ -484,7 +479,7 @@ if uploaded_file is not None:
         render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
         render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
 
-    # 2. التابة الثانية: خريطة حرارية للفردي بالمنطق الانسيابي الدائري (KDE)
+    # 2. التابة الثانية: خريطة حرارية للفردي بالمنطق الانسيابي الدائري (KDE) - تم حذف اللوجو الشفاف من الملعب تماماً
     with tab2:
         sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
         p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
@@ -495,10 +490,9 @@ if uploaded_file is not None:
         if len(p_df_t2) > 1:
             draw_premium_kde_heatmap(p_df_t2, ax_h)
             
-        add_club_logo(ax_h)
         st.pyplot(fig_h)
 
-    # 3. التابة الثالثة: الـ Player Actions Map المنفصلة تماماً تحت بعض مع الـ Legend والأكشنز كاملة
+    # 3. التابة الثالثة: الـ Player Actions Map المنفصلة تماماً تحت بعض - تم حذف اللوجو الشفاف تماماً
     with tab3:
         sel_player_t3 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
         p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
@@ -506,7 +500,6 @@ if uploaded_file is not None:
         st.markdown("<h3 style='color: #2ecc71;'>📐 Map 1: Normal & Through Passes</h3>", unsafe_allow_html=True)
         pitch_m1 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m1, ax_m1 = pitch_m1.draw(figsize=(11, 7))
-        add_club_logo(ax_m1)
         parse_action_metrics(p_df_t3, ax_m1, pitch_m1, all_selected_layers, draw_mode=True, specific_type="passes")
         st.pyplot(fig_m1)
         
@@ -515,7 +508,6 @@ if uploaded_file is not None:
         st.markdown("<h3 style='color: #38bdf8;'>🏹 Map 2: Crosses & Corners Matrix</h3>", unsafe_allow_html=True)
         pitch_m2 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m2, ax_m2 = pitch_m2.draw(figsize=(11, 7))
-        add_club_logo(ax_m2)
         parse_action_metrics(p_df_t3, ax_m2, pitch_m2, all_selected_layers, draw_mode=True, specific_type="crosses")
         st.pyplot(fig_m2)
         
@@ -524,13 +516,12 @@ if uploaded_file is not None:
         st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 3: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
         pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
-        add_club_logo(ax_m3)
         parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
         
         ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_m3)
 
-    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية المتقدمة للفريق كله
+    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية للفريق كله - تم حذف اللوجو الشفاف تماماً
     with tab4:
         st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
         pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
@@ -539,16 +530,14 @@ if uploaded_file is not None:
         if len(team_df) > 1:
             draw_premium_kde_heatmap(team_df, ax_th)
             
-        add_club_logo(ax_th)
         st.pyplot(fig_th)
 
-    # 5. التابة الخامسة: تابة مستقلة لخرائط الأكشن والتوزيع التكتيكي الجماعي للفريق بالكامل
+    # 5. التابة الخامسة: تابة مستقلة لخرائط الإجراءات الجماعية للفريق بالكامل - تم حذف اللوجو الشفاف تماماً
     with tab5:
         st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Team Combined Tactical Actions Map: {selected_team}</h3>", unsafe_allow_html=True)
         pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
         
-        add_club_logo(ax_td)
         parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
         ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_td)
