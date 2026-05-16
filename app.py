@@ -156,7 +156,7 @@ if uploaded_file is not None:
         selected_passes = st.multiselect("Pass Types:", ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"], default=["Normal Passes", "Crosses"])
         
     with st.sidebar.expander("🛡️ Defensive & Attack Filters", expanded=True):
-        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels"])
+        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels", "Counterpress", "Fouls"])
 
     all_selected_layers = selected_passes + selected_defense
 
@@ -173,15 +173,17 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='red', marker='s', label='Ground Duel Lost', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='#2ecc71', marker='^', label='Aerial Won', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='red', marker='^', label='Aerial Lost', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='red', marker='x', label='Foul (Red X)', linestyle='None', markersize=10, markeredgewidth=2),
+            mlines.Line2D([], [], color='black', marker='o', label='Counterpress (#)', linestyle='None', markersize=8),
             mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=12)
         ]
 
-    # محرك البحث ورسم الماتريكس التكتيكي بالكامل
+    # محرك البحث المطور ورصد كافة الإجراءات التكتيكية بدقة تفاعلية لايف
     def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True):
         matrix = {
             "total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0,
             "through_balls": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0,
-            "aerial_duels_won": 0, "goals": 0
+            "aerial_duels_won": 0, "fouls": 0, "counterpress": 0, "goals": 0
         }
         
         for i, row in dataframe.iterrows():
@@ -190,6 +192,7 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag
             action_captured = False
             
+            # 1. التمريرات والعرضيات
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
                     if draw_mode: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
@@ -211,45 +214,78 @@ if uploaded_file is not None:
                     matrix["total_passes"] += 1
                     if is_success: matrix["success_passes"] += 1
 
+            # 2. التاكلز والتدخلات
             elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع', 'تكل', 'تاكلز']) and "Tackles" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
                 matrix["tackles"] += 1
 
+            # 3. التشتيت
             elif any(w in act for w in ['clear', 'clearance', 'تشتيت', 'ابعاد']) and "Clearances" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
                 matrix["clearances"] += 1
 
+            # 4. الالتحامات الهوائية
             elif any(w in act for w in ['aerial', 'هوائي', 'طير', 'رأس']) and "Aerial Duels" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
                 if is_success: matrix["aerial_duels_won"] += 1
 
+            # 5. الالتحامات الأرضية
             elif any(w in act for w in ['duel', 'التحام', 'صراع', 'أرضي', 'ground']) and 'aerial' not in act and "Ground Duels" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
                 if is_success: matrix["ground_duels_won"] += 1
+
+            # 6. الفاولات (Fouls) - رصد ذكي شامل
+            elif any(w in act or w in tag for w in ['foul', 'خطأ', 'committed', 'suffered']) and "Fouls" in layers:
+                if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='red', linewidth=3, ax=ax, zorder=5)
+                matrix["fouls"] += 1
+
+            # 7. الضغط العكسي (Counterpress) - لقطة ذكية جداً من الداتا
+            elif any(w in act or w in tag for w in ['counterpress', 'press', 'recovery', 'ضغط']) and "Counterpress" in layers:
+                if draw_mode: ax.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
+                matrix["counterpress"] += 1
             
+            # الأهداف
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
                 if draw_mode: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
                 matrix["goals"] += 1
                 
         return matrix
 
-    def render_player_summary_table(player_name, stats):
+    # دالة توليد بروفايل اللاعب وجدول الإحصائيات التفاعلي لايف 100%
+    def render_player_summary_table(player_name, stats, active_layers):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
         c_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
+        
+        # تصفير القيم لو الفلتر بتاعها مش متفعل عشان نضمن التفاعلية الكاملة لايف
+        t_passes = stats['total_passes'] if "Normal Passes" in active_layers else 0
+        s_passes = stats['success_passes'] if "Normal Passes" in active_layers else 0
+        t_crosses = stats['crosses'] if "Crosses" in active_layers else 0
+        s_crosses = stats['success_crosses'] if "Crosses" in active_layers else 0
+        t_through = stats['through_balls'] if "Through Balls" in active_layers else 0
+        t_tackles = stats['tackles'] if "Tackles" in active_layers else 0
+        t_clearances = stats['clearances'] if "Clearances" in active_layers else 0
+        g_duels = stats['ground_duels_won'] if "Ground Duels" in active_layers else 0
+        a_duels = stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0
+        t_fouls = stats['fouls'] if "Fouls" in active_layers else 0
+        t_cpress = stats['counterpress'] if "Counterpress" in active_layers else 0
+        t_goals = stats['goals'] if "Goals" in active_layers else 0
+
         st.markdown(f"""
             <div class="summary-table-container">
-                <div class="summary-title">📊 Player Summary Profile: {player_name}</div>
+                <div class="summary-title">📊 Live Interactive Summary Profile: {player_name}</div>
                 <table class="player-summary-table">
                     <thead><tr><th>Metric Category</th><th>Total Attempts</th><th>Visual Progress & Accuracy</th></tr></thead>
                     <tbody>
-                        <tr><td><b>Total Passing</b></td><td>{stats['total_passes']}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {p_pct}%;"></div></div> <span class="stat-badge">{stats['success_passes']} ({p_pct:.1f}%)</span></td></tr>
-                        <tr><td><b>Crosses</b></td><td>{stats['crosses']}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {c_pct}%;"></div></div> <span class="stat-badge">{stats['success_crosses']} ({c_pct:.1f}%)</span></td></tr>
-                        <tr><td><b>Through Balls</b></td><td>{stats['through_balls']}</td><td><span class="stat-badge">{stats['through_balls']}</span></td></tr>
-                        <tr><td><b>Defensive Tackles (Tackles)</b></td><td>{stats['tackles']}</td><td><span class="stat-badge">{stats['tackles']}</span></td></tr>
-                        <tr><td><b>Clearances</b></td><td>{stats['clearances']}</td><td><span class="stat-badge">{stats['clearances']}</span></td></tr>
-                        <tr><td><b>Ground Duels Won</b></td><td>-</td><td><span class="stat-badge">{stats['ground_duels_won']} Won</span></td></tr>
-                        <tr><td><b>Aerial Duels Won</b></td><td>-</td><td><span class="stat-badge">{stats['aerial_duels_won']} Won</span></td></tr>
-                        <tr><td style="color: gold; font-weight: bold;">⚽ Goals Scored</td><td>-</td><td><span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">{stats['goals']} GOAL</span></td></tr>
+                        <tr><td><b>Total Passing</b></td><td>{t_passes}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {p_pct if t_passes > 0 else 0}%;"></div></div> <span class="stat-badge">{s_passes} ({p_pct:.1f}%)</span></td></tr>
+                        <tr><td><b>Crosses</b></td><td>{t_crosses}</td><td><div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {c_pct if t_crosses > 0 else 0}%;"></div></div> <span class="stat-badge">{s_crosses} ({c_pct:.1f}%)</span></td></tr>
+                        <tr><td><b>Through Balls</b></td><td>{t_through}</td><td><span class="stat-badge">{t_through}</span></td></tr>
+                        <tr><td><b>Defensive Tackles (Tackles)</b></td><td>{t_tackles}</td><td><span class="stat-badge">{t_tackles}</span></td></tr>
+                        <tr><td><b>Clearances</b></td><td>{t_clearances}</td><td><span class="stat-badge">{t_clearances}</span></td></tr>
+                        <tr><td><b>Ground Duels Won</b></td><td>-</td><td><span class="stat-badge">{g_duels} Won</span></td></tr>
+                        <tr><td><b>Aerial Duels Won</b></td><td>-</td><td><span class="stat-badge">{a_duels} Won</span></td></tr>
+                        <tr><td><b>Fouls Committed/Suffered</b></td><td>{t_fouls}</td><td><span class="stat-badge">{t_fouls}</span></td></tr>
+                        <tr><td><b>Counterpress Actions (#)</b></td><td>{t_cpress}</td><td><span class="stat-badge">{t_cpress}</span></td></tr>
+                        <tr><td style="color: gold; font-weight: bold;">⚽ Goals Scored</td><td>-</td><td><span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">{t_goals} GOAL</span></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -263,16 +299,15 @@ if uploaded_file is not None:
         "👥 Team Strategy Lab"
     ])
 
-    # تجهيز قوايم اللعيبة مدمج فيها لوجو EPS الإحترافي 🛡️
     player_list = sorted(team_df['Player'].dropna().unique().tolist())
     player_options = {p: f"🛡️ {p}" for p in player_list}
 
-    # 1. التابة الأولى: جدول أداء اللاعب الفردي بالبارات المضخمة
+    # 1. التابة الأولى: جدول أداء اللاعب الفردي التفاعلي لايف 100%
     with tab1:
         sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
         p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
         p_stats_t1 = parse_action_metrics(p_df_t1, None, None, all_selected_layers, draw_mode=False)
-        render_player_summary_table(sel_player_t1, p_stats_t1)
+        render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
 
     # 2. التابة الثانية: خريطة حرارية للفردي بكامل العرض وبألوان سكاوت لاب النارية
     with tab2:
@@ -290,7 +325,7 @@ if uploaded_file is not None:
         add_club_logo(ax_h)
         st.pyplot(fig_h)
 
-    # 3. التابة الثالثة: خريطة إجراءات اللاعب وأسهمه الدفاعية لوحدها تماماً
+    # 3. التابة الثالثة: خريطة إجراءات اللاعب وأسهمه الدفاعية بالكامل شاملة الفاولات والضغط
     with tab3:
         sel_player_t3 = st.selectbox("🎯 Focus Player (Actions):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
         p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
@@ -303,7 +338,7 @@ if uploaded_file is not None:
         ax_d.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_d)
 
-    # 4. التابة الرابعة الجديدة: تابة التحاليل الجماعية للفريق بالكامل (Side-by-Side)
+    # 4. التابة الرابعة: تابة التحاليل الجماعية للفريق بالكامل (Side-by-Side)
     with tab4:
         st.subheader(f"👥 Global Team Level Analysis: {selected_team}")
         col_t1, col_t2 = st.columns(2)
