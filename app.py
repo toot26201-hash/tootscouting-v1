@@ -3,10 +3,11 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.lines as mlines
-import seaborn as sns  # تم إضافة seaborn لرسم الخريطة الحرارية بدقة
+import seaborn as sns
 from PIL import Image
+import os
 
-# 1. Page Config & Strict Dark Premium Theme
+# 1. Page Config & Strict Dark Premium Theme (TootScouting Global Style)
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
 st.markdown("""
@@ -116,12 +117,16 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-def add_logo(ax):
-    try:
-        img = Image.open('image_deac96.png')
-        ax.imshow(img, extent=[48, 72, 28, 52], alpha=0.12, zorder=0)
-    except:
-        pass
+# دالة دمج لوجو النادي الجديد EPS في السنتر بشكل احترافي شفاف
+def add_club_logo(ax):
+    logo_filename = 'Espoon Palloseura_logo.png'
+    if os.path.exists(logo_filename):
+        try:
+            img = Image.open(logo_filename)
+            # وضع اللوجو في دائرة السنتر بالظبط بمظهر المنصات العالمية
+            ax.imshow(img, extent=[45, 75, 25, 55], alpha=0.22, zorder=2)
+        except:
+            pass
 
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 
@@ -144,16 +149,12 @@ if uploaded_file is not None:
     selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
     team_df = df[df['Team'] == selected_team].copy()
 
-    # فلاتر التحكم في القوائم الجانبية
+    # القوائم الجانبية للفلاتر والأكشنز الدفاعية كاملة
     with st.sidebar.expander("🎯 Passing Filters", expanded=True):
         selected_passes = st.multiselect("Pass Types:", ["Normal Passes", "Crosses", "Through Balls", "Corners", "Free Kicks"], default=["Normal Passes", "Crosses"])
         
     with st.sidebar.expander("🛡️ Defensive & Attack Filters", expanded=True):
-        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Goals"])
-
-    # زر تفعيل الخريطة الحرارية الذكية
-    st.sidebar.markdown("### 🗺️ Advanced Analytics")
-    enable_heatmap = st.sidebar.checkbox("🔥 Enable Tactical Heatmap", value=False)
+        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress", "Goals"], default=["Tackles", "Ground Duels", "Clearances", "Goals"])
 
     all_selected_layers = selected_passes + selected_defense
 
@@ -189,48 +190,51 @@ if uploaded_file is not None:
             is_success = 'success' in tag or 'ناجح' in tag
             drawn_action = False
             
+            # 1. التمريرات والعرضيات والبينيات
             if 'pass' in act or 'تمرير' in act:
                 if 'cross' in tag and "Crosses" in layers:
-                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                     counts["crosses"] += 1
                     if is_success: counts["success_crosses"] += 1
                     drawn_action = True
                 elif 'through' in tag and "Through Balls" in layers:
-                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax, zorder=4)
                     counts["through_balls"] += 1
                     drawn_action = True
                 elif 'corner' in tag and "Corners" in layers:
-                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                     drawn_action = True
                 elif "Normal Passes" in layers and not any(k in tag for k in ['cross', 'through', 'corner', 'free kick']):
-                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5)
+                    if draw: pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5, zorder=3)
                     drawn_action = True
                 
                 if drawn_action:
                     counts["total_passes"] += 1
                     if is_success: counts["success_passes"] += 1
 
+            # 2. الإجراءات الدفاعية (Tackles, Clearances, Duels) مرسومة بـ zorder أعلى لتكون فوق الـ Heatmap
             elif any(word in act for word in ['tackle', 'inter', 'تدخل', 'قطع', 'clear', 'تشتيت', 'duel', 'التحام']):
                 if any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع']) and "Tackles" in layers:
-                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=220, color='blue', linewidth=2.5, ax=ax)
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
                     counts["tackles"] += 1
                 elif 'clear' in act and "Clearances" in layers:
-                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=180, color='purple', ax=ax)
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
                     counts["clearances"] += 1
                 elif 'aerial' in act and "Aerial Duels" in layers:
-                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=200, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax)
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
                     if is_success: counts["aerial_duels_won"] += 1
                 elif 'duel' in act and 'aerial' not in act and "Ground Duels" in layers:
-                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=180, color='#2ecc71' if is_success else 'red', ax=ax)
+                    if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
                     if is_success: counts["ground_duels_won"] += 1
             
+            # الأهداف
             if ('goal' in tag or 'هدف' in tag) and "Goals" in layers:
-                if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=600, color='gold', edgecolors='black', ax=ax, zorder=5)
+                if draw: pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
                 counts["goals"] += 1
                 
         return counts
 
-    # --- Player Performance Summary Component with HTML Bars ---
+    # --- Player Performance Summary Component ---
     def render_player_summary_table(player_name, stats):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
         c_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
@@ -312,29 +316,34 @@ if uploaded_file is not None:
         p_stats = process_and_draw_tactics(p_df, None, None, all_selected_layers, draw=False)
         render_player_summary_table(sel_player, p_stats)
         
-        pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        # رسم الملعب
+        pitch = Pitch(pitch_type='statsbomb', pitch_color='#111827', line_color='#374151', linestyle='--', positional=True, positional_color='#1f2937', linewidth=1.2)
         fig, ax = pitch.draw(figsize=(12, 8.5))
-        add_logo(ax)
         
-        # رسم الخريطة الحرارية (Heatmap) لو اللاعب عنده داتا كافية والزرار متفعل
-        if enable_heatmap and len(p_df) > 1:
-            sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap='Oranges', fill=True, thresh=0.1, alpha=0.4, zorder=1, ax=ax)
+        # 1. أولاً: رسم الخريطة الحرارية النارية في الخلفية (YlOrRd تعطي تدرج من الأصفر للبرتقالي للأحمر الناري)
+        if len(p_df) > 1:
+            sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], cmap='YlOrRd', fill=True, thresh=0.05, alpha=0.55, zorder=1, ax=ax)
             
+        # 2. ثانياً: وضع لوجو EPS فوق الخريطة وتحت الأكشنز
+        add_club_logo(ax)
+            
+        # 3. ثالثاً: رسم الإجراءات الدفاعية والهجومية لتكون في الصدارة واضحة جداً
         process_and_draw_tactics(p_df, ax, pitch, all_selected_layers, draw=True)
-        ax.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff')
+        
+        ax.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
         st.pyplot(fig)
 
     with tab2:
         st.subheader(f"Tactical Distribution: {selected_team}")
-        pitch_t = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#1e293b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        pitch_t = Pitch(pitch_type='statsbomb', pitch_color='#111827', line_color='#374151', linestyle='--', positional=True, positional_color='#1f2937', linewidth=1.2)
         fig_t, ax_t = pitch_t.draw(figsize=(12.5, 9))
-        add_logo(ax_t)
         
-        if enable_heatmap and len(team_df) > 1:
-            sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap='Blues', fill=True, thresh=0.1, alpha=0.3, zorder=1, ax=ax_t)
+        if len(team_df) > 1:
+            sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], cmap='Oranges', fill=True, thresh=0.05, alpha=0.4, zorder=1, ax=ax_t)
             
+        add_club_logo(ax_t)
         process_and_draw_tactics(team_df, ax_t, pitch_t, all_selected_layers, draw=True)
-        ax_t.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff')
+        ax_t.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
         st.pyplot(fig_t)
 
 else:
