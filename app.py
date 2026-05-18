@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.lines as mlines
+import sns = None
 import seaborn as sns
 from PIL import Image
 import os
@@ -246,18 +247,43 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيزم متطور جداً وتلقائي لإعادة تسمية العواميد لمنع تداخل الحروف الكبيرة والصغيرة
+    # 🎯 ميكانيزم المابينج الدقيق والذكي (Precise Selective Mapping) لمنع تكرار وتداخل الأعمدة تماماً
     rename_dict = {}
+    
+    # 1. تحديد عمود الإجراء الأساسيAction
     for col in df.columns:
-        col_lower = col.lower().strip()
-        if 'player' in col_lower or 'players' in col_lower or 'name' in col_lower:
-            rename_dict[col] = 'Player'
-        elif 'team' in col_lower or 'teams' in col_lower or 'club' in col_lower:
-            rename_dict[col] = 'Team'
-        elif 'action' in col_lower or 'event type' in col_lower or 'event_type' in col_lower or 'event' in col_lower:
+        c_low = col.lower().strip()
+        if 'action' in c_low or 'event type' in c_low or 'event_type' in c_low or c_low == 'event' or c_low == 'إجراء' or c_low == 'حدث':
             rename_dict[col] = 'Action'
-        elif 'tag' in col_lower or 'tags' in col_lower:
+            break
+
+    # 2. تحديد عمود الفريق الكلي Team
+    for col in df.columns:
+        c_low = col.lower().strip()
+        if 'team' in c_low or 'teams' in c_low or c_low == 'side' or c_low == 'squad' or c_low == 'club' or c_low == 'فريق':
+            rename_dict[col] = 'Team'
+            break
+
+    # 3. تحديد عمود اللاعبين الفردي Player من غير تداخل مع عمود Name
+    for col in df.columns:
+        c_low = col.lower().strip()
+        if 'player' in c_low or 'players' in c_low or c_low == 'لاعب':
+            rename_dict[col] = 'Player'
+            break
+    if 'Player' not in rename_dict.values():
+        # لو مفيش عمود لاعبين صريح، يرجع لـ Name كخيار احتياطي
+        for col in df.columns:
+            c_low = col.lower().strip()
+            if 'name' in c_low and col not in rename_dict:
+                rename_dict[col] = 'Player'
+                break
+
+    # 4. تحديد عمود الـ Tags المساعد
+    for col in df.columns:
+        c_low = col.lower().strip()
+        if 'tag' in c_low or 'tags' in c_low or 'وصف' in c_low:
             rename_dict[col] = 'Tags'
+            break
             
     if rename_dict:
         df = df.rename(columns=rename_dict)
@@ -270,7 +296,6 @@ if uploaded_file is not None:
         st.markdown("### 🔍 الأعمدة المتوفرة حالياً داخل ملفك هي:")
         st.write(list(df.columns))
     else:
-        # حماية البيانات من السطور الفارغة
         df['Team'] = df['Team'].fillna('Unknown Team')
         df = df.dropna(subset=['Action'])
         
@@ -282,7 +307,7 @@ if uploaded_file is not None:
         if 'Player' in df.columns:
             df['Player'] = df['Player'].fillna('Unknown Player').astype(str).str.strip()
 
-        # معالجة الإحداثيات الذكية للملعب بكافة التسميات المتاحة
+        # معالجة الإحداثيات والضرب التلقائي في أبعاد الملعب المعتمدة دولياً (120x80)
         col_map_lower = {c.lower().strip(): c for c in df.columns}
         
         x_start_col = col_map_lower.get('x start') or col_map_lower.get('x')
@@ -347,7 +372,9 @@ if uploaded_file is not None:
                     continue
                 act = str(row['Action']).lower()
                 tag = str(row['Tags']).lower()
-                is_success = 'success' in tag or 'naجح' in tag or 'won' in tag or 'win' in tag or 'pass' in tag or 'outcome: pass' in tag
+                
+                # ميكانيزم قراءة حالة النجاح الذكي من التاجات لملف Musa-EPS الجديد
+                is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag or 'pass' in tag or 'outcome: pass' in tag
                 if 'failed' in tag or 'failure' in tag: is_success = False
                 action_captured = False
                 
@@ -521,7 +548,7 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
-        # ميكانيزم استخراج لستة اللاعبين بشكل نهائي ومتأمن من خلال السلسلة النصية الموحدة
+        # ميكانيزم استخراج لستة اللاعبين بشكل نهائي ومتأمن وصحيح 100%
         player_list = []
         if 'Player' in team_df.columns:
             player_list = sorted([p for p in team_df['Player'].dropna().unique().tolist() if str(p).strip() != ''])
@@ -532,83 +559,4 @@ if uploaded_file is not None:
             with tab1:
                 sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
                 p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
-                p_stats_t1 = parse_action_metrics(p_df_t1, None, None, all_selected_layers, draw_mode=False)
-                render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
-                render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
-
-            with tab2:
-                sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
-                p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
-                pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-                fig_h, ax_h = pitch_h.draw(figsize=(12, 9))
-                if len(p_df_t2) > 0:
-                    draw_premium_kde_heatmap(p_df_t2, ax_h)
-                st.pyplot(fig_h)
-
-            with tab3:
-                sel_player_t3 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
-                p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
-                
-                st.markdown("<h3 style='color: #38bdf8; text-align: center;'>🌍 Map 1: Player Full Performance Map (Attack & Defense Summary)</h3>", unsafe_allow_html=True)
-                pitch_ind_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-                fig_ind_all, ax_ind_all = pitch_ind_all.draw(figsize=(12, 9))
-                parse_action_metrics(p_df_t3, ax_ind_all, pitch_ind_all, all_selected_layers, draw_mode=True, specific_type="all")
-                ax_ind_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-                st.pyplot(fig_ind_all)
-                
-                st.markdown("---")
-                
-                st.markdown("<h3 style='color: #2ecc71;'>📐 Map 2: Normal & Through Passes</h3>", unsafe_allow_html=True)
-                pitch_m1 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-                fig_m1, ax_m1 = pitch_m1.draw(figsize=(11, 7))
-                parse_action_metrics(p_df_t3, ax_m1, pitch_m1, all_selected_layers, draw_mode=True, specific_type="passes")
-                st.pyplot(fig_m1)
-                
-                st.markdown("---")
-                
-                st.markdown("<h3 style='color: #38bdf8;'>🏹 Map 3: Crosses & Corners Matrix</h3>", unsafe_allow_html=True)
-                pitch_m2 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-                fig_m2, ax_m2 = pitch_m2.draw(figsize=(11, 7))
-                parse_action_metrics(p_df_t3, ax_m2, pitch_m2, all_selected_layers, draw_mode=True, specific_type="crosses")
-                st.pyplot(fig_m2)
-                
-                st.markdown("---")
-                
-                st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
-                pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-                fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
-                parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
-                ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-                st.pyplot(fig_m3)
-        else:
-            with tab1: st.warning("⚠️ لم يتم العثور على عمود يخص أسماء اللاعبين في هذا الملف لعرض التحليلات الفردية.")
-            with tab2: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
-            with tab3: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
-
-        with tab4:
-            st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
-            pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_th, ax_th = pitch_th.draw(figsize=(12, 9))
-            if len(team_df) > 1:
-                draw_premium_kde_heatmap(team_df, ax_th)
-            st.pyplot(fig_th)
-
-        with tab5:
-            st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🌍 Map 1: Team Full Tactical Performance Map (Attack & Defense)</h3>", unsafe_allow_html=True)
-            pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_all, ax_all = pitch_all.draw(figsize=(12, 9))
-            parse_action_metrics(team_df, ax_all, pitch_all, all_selected_layers, draw_mode=True, specific_type="all")
-            ax_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            st.pyplot(fig_all)
-            
-            st.markdown("---")
-            
-            st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
-            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
-            parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defense")
-            ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            st.pyplot(fig_td)
-
-else:
-    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
+                p_stats_t1 = parse_action_metrics(p_df
