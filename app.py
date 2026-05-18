@@ -246,17 +246,17 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيزم المابينج الذكي والموسّع جداً لقط داتا مباراة Musa-EPS الحالية بالمللي
+    # ميكانيزم متطور جداً وتلقائي لإعادة تسمية العواميد لمنع تداخل الحروف الكبيرة والصغيرة
     rename_dict = {}
     for col in df.columns:
-        col_lower = col.lower()
-        if any(x in col_lower for x in ['action', 'event type', 'event_type', 'event', 'type', 'إجراء', 'حدث']):
-            rename_dict[col] = 'Action'
-        elif any(x in col_lower for x in ['teams', 'team', 'side', 'squad', 'club', 'فريق']):
-            rename_dict[col] = 'Team'
-        elif any(x in col_lower for x in ['players', 'player', 'name', 'لاعب']):
+        col_lower = col.lower().strip()
+        if 'player' in col_lower or 'players' in col_lower or 'name' in col_lower:
             rename_dict[col] = 'Player'
-        elif any(x in col_lower for x in ['tags', 'tag', 'sub', 'وصف']):
+        elif 'team' in col_lower or 'teams' in col_lower or 'club' in col_lower:
+            rename_dict[col] = 'Team'
+        elif 'action' in col_lower or 'event type' in col_lower or 'event_type' in col_lower or 'event' in col_lower:
+            rename_dict[col] = 'Action'
+        elif 'tag' in col_lower or 'tags' in col_lower:
             rename_dict[col] = 'Tags'
             
     if rename_dict:
@@ -270,6 +270,7 @@ if uploaded_file is not None:
         st.markdown("### 🔍 الأعمدة المتوفرة حالياً داخل ملفك هي:")
         st.write(list(df.columns))
     else:
+        # حماية البيانات من السطور الفارغة
         df['Team'] = df['Team'].fillna('Unknown Team')
         df = df.dropna(subset=['Action'])
         
@@ -278,12 +279,16 @@ if uploaded_file is not None:
         else:
             df['Tags'] = df['Tags'].fillna('')
             
-        col_map_lower = {c.lower(): c for c in df.columns}
+        if 'Player' in df.columns:
+            df['Player'] = df['Player'].fillna('Unknown Player').astype(str).str.strip()
+
+        # معالجة الإحداثيات الذكية للملعب بكافة التسميات المتاحة
+        col_map_lower = {c.lower().strip(): c for c in df.columns}
         
-        x_start_col = col_map_lower.get('x start') or col_map_lower.get('x start ') or col_map_lower.get('x')
-        y_start_col = col_map_lower.get('y start') or col_map_lower.get('y start ') or col_map_lower.get('y')
-        x_end_col = col_map_lower.get('x end') or col_map_lower.get('x end ')
-        y_end_col = col_map_lower.get('y end') or col_map_lower.get('y end ')
+        x_start_col = col_map_lower.get('x start') or col_map_lower.get('x')
+        y_start_col = col_map_lower.get('y start') or col_map_lower.get('y')
+        x_end_col = col_map_lower.get('x end')
+        y_end_col = col_map_lower.get('y end')
 
         if x_start_col and y_start_col:
             df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
@@ -296,7 +301,7 @@ if uploaded_file is not None:
                 df['x_end_scaled'] = df['x_scaled']
                 df['y_end_scaled'] = df['y_scaled']
 
-        team_list = sorted([t for t in df['Team'].unique().tolist() if pd.notna(t) and t != ''])
+        team_list = sorted([t for t in df['Team'].unique().tolist() if pd.notna(t) and str(t).strip() != ''])
         if not team_list:
             team_list = ['Default Team']
             df['Team'] = 'Default Team'
@@ -342,7 +347,7 @@ if uploaded_file is not None:
                     continue
                 act = str(row['Action']).lower()
                 tag = str(row['Tags']).lower()
-                is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag or 'pass' in tag or 'outcome: pass' in tag
+                is_success = 'success' in tag or 'naجح' in tag or 'won' in tag or 'win' in tag or 'pass' in tag or 'outcome: pass' in tag
                 if 'failed' in tag or 'failure' in tag: is_success = False
                 action_captured = False
                 
@@ -516,16 +521,12 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
-        # ميكانيزم متأمن 100% لفحص واستخراج لستة اللاعبين بأمان تام
-        has_player_column = 'Player' in df.columns
+        # ميكانيزم استخراج لستة اللاعبين بشكل نهائي ومتأمن من خلال السلسلة النصية الموحدة
         player_list = []
-        if has_player_column:
-            try:
-                player_list = sorted([p for p in team_df['Player'].dropna().unique().tolist() if str(p).strip() != ''])
-            except Exception:
-                has_player_column = False
+        if 'Player' in team_df.columns:
+            player_list = sorted([p for p in team_df['Player'].dropna().unique().tolist() if str(p).strip() != ''])
 
-        if has_player_column and len(player_list) > 0:
+        if len(player_list) > 0:
             player_options = {p: f"🛡️ {p}" for p in player_list}
             
             with tab1:
@@ -540,7 +541,7 @@ if uploaded_file is not None:
                 p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
                 pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
                 fig_h, ax_h = pitch_h.draw(figsize=(12, 9))
-                if len(p_df_t2) > 1:
+                if len(p_df_t2) > 0:
                     draw_premium_kde_heatmap(p_df_t2, ax_h)
                 st.pyplot(fig_h)
 
@@ -586,28 +587,4 @@ if uploaded_file is not None:
 
         with tab4:
             st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
-            pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_th, ax_th = pitch_th.draw(figsize=(12, 9))
-            if len(team_df) > 1:
-                draw_premium_kde_heatmap(team_df, ax_th)
-            st.pyplot(fig_th)
-
-        with tab5:
-            st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🌍 Map 1: Team Full Tactical Performance Map (Attack & Defense)</h3>", unsafe_allow_html=True)
-            pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_all, ax_all = pitch_all.draw(figsize=(12, 9))
-            parse_action_metrics(team_df, ax_all, pitch_all, all_selected_layers, draw_mode=True, specific_type="all")
-            ax_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            st.pyplot(fig_all)
-            
-            st.markdown("---")
-            
-            st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
-            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
-            parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defense")
-            ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            st.pyplot(fig_td)
-
-else:
-    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
+            pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=
