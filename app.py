@@ -244,7 +244,6 @@ if uploaded_file is not None:
     except Exception as e:
         df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
 
-    # تنظيف وتوحيد مسافات أسماء الأعمدة تماماً
     df.columns = df.columns.str.strip()
     
     # ميكانيزم المابينج الذكي (Auto-Mapping) لتفادي الـ KeyError تماماً
@@ -263,28 +262,23 @@ if uploaded_file is not None:
     if rename_dict:
         df = df.rename(columns=rename_dict)
 
-    # التحقق الآمن من وجود الأعمدة الحيوية قبل عمل dropna
     required_cols = ['Action', 'Team']
     missing_cols = [c for c in required_cols if c not in df.columns]
     
     if missing_cols:
         st.error(f"⚠️ الملف المرفوع لا يحتوي على الأعمدة الأساسية المطلوبة: {missing_cols}. يرجى التحقق من تسمية الأعمدة داخل ملف الـ CSV.")
     else:
-        # لو كله تمام يعمل التنظيف بأمان
         df = df.dropna(subset=['Action', 'Team'])
         
-        # التأكد من وجود عمود الـ Tags حتى لو مش موجود في الداتا
         if 'Tags' not in df.columns:
             df['Tags'] = ''
             
-        # معالجة الإحداثيات والضرب في المقاييس الدولية للملعب
         if 'X start' in df.columns:
             df['x_scaled'] = df['X start'] * 120
             df['y_scaled'] = df['Y start'] * 80
             df['x_end_scaled'] = df['X end'] * 120
             df['y_end_scaled'] = df['Y end'] * 80
         elif 'x' in df.columns.str.lower():
-            # معالجة إضافية لو الإحداثيات مكتوبة x و y سمول علطول
             x_col = [c for c in df.columns if c.lower() == 'x'][0]
             y_col = [c for c in df.columns if c.lower() == 'y'][0]
             df['x_scaled'] = df[x_col] if df[x_col].max() > 1 else df[x_col] * 120
@@ -355,7 +349,7 @@ if uploaded_file is not None:
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                         action_captured = True
                     elif 'cross' in tag and "Crosses" in layers:
-                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                        if draw_mode upgrade and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                         matrix["crosses"] += 1
                         if is_success: matrix["success_crosses"] += 1
@@ -505,12 +499,10 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
-        # التحقق من وجود عمود Player لتهيئة القوائم الفردية بأمان
         if 'Player' in df.columns and len(team_df['Player'].dropna().unique()) > 0:
             player_list = sorted(team_df['Player'].dropna().unique().tolist())
             player_options = {p: f"🛡️ {p}" for p in player_list}
             
-            # Tab 1: بروفايل اللاعب
             with tab1:
                 sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
                 p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
@@ -518,7 +510,6 @@ if uploaded_file is not None:
                 render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
                 render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
 
-            # Tab 2: خريطة حرارية للفردي
             with tab2:
                 sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
                 p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
@@ -528,7 +519,6 @@ if uploaded_file is not None:
                     draw_premium_kde_heatmap(p_df_t2, ax_h)
                 st.pyplot(fig_h)
 
-            # Tab 3: خريطة الأكشنز الفردية الشاملة والمفصلة
             with tab3:
                 sel_player_t3 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
                 p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
@@ -569,7 +559,6 @@ if uploaded_file is not None:
             with tab2: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
             with tab3: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
 
-        # Tab 4: الهيت ماب الجماعي للفريق
         with tab4:
             st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
             pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
@@ -578,7 +567,6 @@ if uploaded_file is not None:
                 draw_premium_kde_heatmap(team_df, ax_th)
             st.pyplot(fig_th)
 
-        # Tab 5: إجراءات الفريق الجماعية
         with tab5:
             st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🌍 Map 1: Team Full Tactical Performance Map (Attack & Defense)</h3>", unsafe_allow_html=True)
             pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
@@ -590,5 +578,4 @@ if uploaded_file is not None:
             st.markdown("---")
             
             st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
-            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_td, ax_td = pitch_td.draw(figsize=(12, 9
+            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0
