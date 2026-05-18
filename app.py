@@ -246,17 +246,17 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيزم المابينج الذكي (Auto-Mapping) لتفادي الـ KeyError تماماً
+    # ميكانيزم المابينج التلقائي الموسّع لحماية السيرفر ولقط مسميات الأندية والبرامج الأوروبية
     rename_dict = {}
     for col in df.columns:
         col_lower = col.lower()
-        if 'action' in col_lower:
+        if any(x in col_lower for x in ['action', 'event', 'type', 'إجراء', 'حدث']):
             rename_dict[col] = 'Action'
-        elif 'team' in col_lower:
+        elif any(x in col_lower for x in ['team', 'side', 'squad', 'club', 'فريق']):
             rename_dict[col] = 'Team'
-        elif 'player' in col_lower:
+        elif any(x in col_lower for x in ['player', 'name', 'لاعب']):
             rename_dict[col] = 'Player'
-        elif 'tags' in col_lower:
+        elif any(x in col_lower for x in ['tags', 'tag', 'sub', 'وصف']):
             rename_dict[col] = 'Tags'
             
     if rename_dict:
@@ -266,7 +266,10 @@ if uploaded_file is not None:
     missing_cols = [c for c in required_cols if c not in df.columns]
     
     if missing_cols:
-        st.error(f"⚠️ الملف المرفوع لا يحتوي على الأعمدة الأساسية المطلوبة: {missing_cols}. يرجى التحقق من تسمية الأعمدة داخل ملف الـ CSV.")
+        st.error(f"⚠️ الملف المرفوع لا يحتوي على الأعمدة الأساسية المطلوبة: {missing_cols}")
+        # تريكة استكشافية: طباعة الأسماء الحقيقية جوه جدول للمدرب عشان نعرف السيرفر شايف إيه بالظبط
+        st.markdown("### 🔍 الأعمدة المتوفرة حالياً داخل ملفك هي:")
+        st.write(list(df.columns))
     else:
         df = df.dropna(subset=['Action', 'Team'])
         
@@ -349,7 +352,7 @@ if uploaded_file is not None:
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                         action_captured = True
                     elif 'cross' in tag and "Crosses" in layers:
-                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):  # تم إصلاح سطر الـ upgrade هنا بنجاح!
+                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                         matrix["crosses"] += 1
                         if is_success: matrix["success_crosses"] += 1
