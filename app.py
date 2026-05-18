@@ -246,7 +246,7 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيزم المابينج التلقائي الموسّع لحماية السيرفر ولقط مسميات الأندية والبرامج الأوروبية
+    # ميكانيزم المابينج التلقائي الموسّع لحماية السيرفر
     rename_dict = {}
     for col in df.columns:
         col_lower = col.lower()
@@ -267,7 +267,6 @@ if uploaded_file is not None:
     
     if missing_cols:
         st.error(f"⚠️ الملف المرفوع لا يحتوي على الأعمدة الأساسية المطلوبة: {missing_cols}")
-        # تريكة استكشافية: طباعة الأسماء الحقيقية جوه جدول للمدرب عشان نعرف السيرفر شايف إيه بالظبط
         st.markdown("### 🔍 الأعمدة المتوفرة حالياً داخل ملفك هي:")
         st.write(list(df.columns))
     else:
@@ -348,7 +347,7 @@ if uploaded_file is not None:
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5, zorder=3)
                         action_captured = True
                     elif 'corner' in tag and "Corners" in layers:
-                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                        if draw_mode and (specific_type is None or specific_type == "crosses" or Riga specific_type == "all"):
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                         action_captured = True
                     elif 'cross' in tag and "Crosses" in layers:
@@ -502,8 +501,17 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
-        if 'Player' in df.columns and len(team_df['Player'].dropna().unique()) > 0:
-            player_list = sorted(team_df['Player'].dropna().unique().tolist())
+        # إصلاح جِذري متأمن وآمن لمنع الـ AttributeError تماماً
+        has_player_column = 'Player' in df.columns
+        player_list = []
+        if has_player_column:
+            try:
+                # التحقق الآمن واستخراج لستة اللاعبين من الـ DataFrame المصفى للفريق
+                player_list = sorted(team_df['Player'].dropna().unique().tolist())
+            except Exception:
+                has_player_column = False
+
+        if has_player_column and len(player_list) > 0:
             player_options = {p: f"🛡️ {p}" for p in player_list}
             
             with tab1:
