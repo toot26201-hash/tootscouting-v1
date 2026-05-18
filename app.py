@@ -246,7 +246,7 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيزم المابينج الذكي والموسّع جداً لقط داتا مباراة Musa-EPS الحالية بالمللي
+    # ميكانيزم المابينج التلقائي الموسّع لحماية السيرفر
     rename_dict = {}
     for col in df.columns:
         col_lower = col.lower()
@@ -270,7 +270,6 @@ if uploaded_file is not None:
         st.markdown("### 🔍 الأعمدة المتوفرة حالياً داخل ملفك هي:")
         st.write(list(df.columns))
     else:
-        # ملء خانات الفريق الفارغة بـ 'Unknown Team' لحمايتها من الـ dropna لو كانت السطور ناقصة
         df['Team'] = df['Team'].fillna('Unknown Team')
         df = df.dropna(subset=['Action'])
         
@@ -279,7 +278,6 @@ if uploaded_file is not None:
         else:
             df['Tags'] = df['Tags'].fillna('')
             
-        # معالجة الإحداثيات الذكية بحروفها الكبيرة والصغيرة (X Start / Y Start)
         col_map_lower = {c.lower(): c for c in df.columns}
         
         x_start_col = col_map_lower.get('x start') or col_map_lower.get('x start ') or col_map_lower.get('x')
@@ -288,18 +286,16 @@ if uploaded_file is not None:
         y_end_col = col_map_lower.get('y end') or col_map_lower.get('y end ')
 
         if x_start_col and y_start_col:
-            # لو المقاييس بين 0 و 1 اضرب في أبعاد الملعب المعتمدة (120x80)
             df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
             df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
             
             if x_end_col and y_end_col:
                 df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
-                df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_scaled] * 80
+                df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 # تم إصلاح الـ NameError تماماً هنا!
             else:
                 df['x_end_scaled'] = df['x_scaled']
                 df['y_end_scaled'] = df['y_scaled']
 
-        # تصفية قائمة الأندية والفرق المتاحة
         team_list = sorted([t for t in df['Team'].unique().tolist() if pd.notna(t) and t != ''])
         if not team_list:
             team_list = ['Default Team']
@@ -520,7 +516,6 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
-        # التعرف التلقائي الذكي على لستة اللاعبين من عمود 'Player' الجديد
         has_player_column = 'Player' in df.columns
         player_list = []
         if has_player_column:
