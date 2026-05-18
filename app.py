@@ -577,4 +577,41 @@ if uploaded_file is not None:
                 
                 st.markdown("---")
                 
-                st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4:
+                st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
+                pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+                fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
+                parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
+                ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+                st.pyplot(fig_m3)
+        else:
+            with tab1: st.warning("⚠️ لم يتم العثور على عمود يخص أسماء اللاعبين في هذا الملف لعرض التحليلات الفردية.")
+            with tab2: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
+            with tab3: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
+
+        with tab4:
+            st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
+            pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+            fig_th, ax_th = pitch_th.draw(figsize=(12, 9))
+            if len(team_df) > 1:
+                draw_premium_kde_heatmap(team_df, ax_th)
+            st.pyplot(fig_th)
+
+        with tab5:
+            st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🌍 Map 1: Team Full Tactical Performance Map (Attack & Defense)</h3>", unsafe_allow_html=True)
+            pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+            fig_all, ax_all = pitch_all.draw(figsize=(12, 9))
+            parse_action_metrics(team_df, ax_all, pitch_all, all_selected_layers, draw_mode=True, specific_type="all")
+            ax_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+            st.pyplot(fig_all)
+            
+            st.markdown("---")
+            
+            st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
+            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+            fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
+            parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defense")
+            ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+            st.pyplot(fig_td)
+
+else:
+    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
