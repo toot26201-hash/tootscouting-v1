@@ -285,8 +285,8 @@ if uploaded_file is not None:
             y_col = [c for c in df.columns if c.lower() == 'y'][0]
             df['x_scaled'] = df[x_col] if df[x_col].max() > 1 else df[x_col] * 120
             df['y_scaled'] = df[y_col] if df[y_col].max() > 1 else df[y_col] * 80
-            df['x_end_scaled'] = df['x_scaled']
-            df['y_end_scaled'] = df['y_scaled']
+            df['x_end_scaled'] = df[x_col] if 'x end' not in df.columns.str.lower() else df['x_scaled']
+            df['y_end_scaled'] = df[y_col] if 'y end' not in df.columns.str.lower() else df['y_scaled']
 
         team_list = sorted(df['Team'].unique().tolist())
         selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
@@ -347,11 +347,11 @@ if uploaded_file is not None:
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5, zorder=3)
                         action_captured = True
                     elif 'corner' in tag and "Corners" in layers:
-                        if draw_mode and (specific_type is None or specific_type == "crosses" or Riga specific_type == "all"):
+                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                         action_captured = True
                     elif 'cross' in tag and "Crosses" in layers:
-                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):  # تم التطهير وحذف كلمة ريجا من هنا بنجاح!
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                         matrix["crosses"] += 1
                         if is_success: matrix["success_crosses"] += 1
@@ -501,12 +501,10 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
-        # إصلاح جِذري متأمن وآمن لمنع الـ AttributeError تماماً
         has_player_column = 'Player' in df.columns
         player_list = []
         if has_player_column:
             try:
-                # التحقق الآمن واستخراج لستة اللاعبين من الـ DataFrame المصفى للفريق
                 player_list = sorted(team_df['Player'].dropna().unique().tolist())
             except Exception:
                 has_player_column = False
