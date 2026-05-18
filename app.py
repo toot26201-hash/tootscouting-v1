@@ -246,7 +246,7 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيزم المابينج التلقائي الموسّع لحماية السيرفر
+    # ميكانيزم المابينج الذكي والموسّع جداً لقط داتا مباراة Musa-EPS الحالية بالمللي
     rename_dict = {}
     for col in df.columns:
         col_lower = col.lower()
@@ -291,7 +291,7 @@ if uploaded_file is not None:
             
             if x_end_col and y_end_col:
                 df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
-                df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 # تم إصلاح الـ NameError تماماً هنا!
+                df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
             else:
                 df['x_end_scaled'] = df['x_scaled']
                 df['y_end_scaled'] = df['y_scaled']
@@ -367,7 +367,7 @@ if uploaded_file is not None:
                         action_captured = True
                     elif 'cross' in tag and "Crosses" in layers:
                         if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
-                            pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
+                            pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else '#e74c3c', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                         matrix["crosses"] += 1
                         if is_success: matrix["success_crosses"] += 1
                         action_captured = True
@@ -516,6 +516,7 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
+        # ميكانيزم متأمن 100% لفحص واستخراج لستة اللاعبين بأمان تام
         has_player_column = 'Player' in df.columns
         player_list = []
         if has_player_column:
