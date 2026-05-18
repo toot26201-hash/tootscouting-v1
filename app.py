@@ -246,15 +246,15 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيزم المابينج التلقائي الموسّع لحماية السيرفر
+    # ميكانيزم المابينج الذكي والموسّع جداً لقط داتا مباراة Musa-EPS الحالية بالمللي
     rename_dict = {}
     for col in df.columns:
         col_lower = col.lower()
-        if any(x in col_lower for x in ['action', 'event', 'type', 'إجراء', 'حدث']):
+        if any(x in col_lower for x in ['action', 'event type', 'event_type', 'event', 'type', 'إجراء', 'حدث']):
             rename_dict[col] = 'Action'
-        elif any(x in col_lower for x in ['team', 'side', 'squad', 'club', 'فريق']):
+        elif any(x in col_lower for x in ['teams', 'team', 'side', 'squad', 'club', 'فريق']):
             rename_dict[col] = 'Team'
-        elif any(x in col_lower for x in ['player', 'name', 'لاعب']):
+        elif any(x in col_lower for x in ['players', 'player', 'name', 'لاعب']):
             rename_dict[col] = 'Player'
         elif any(x in col_lower for x in ['tags', 'tag', 'sub', 'وصف']):
             rename_dict[col] = 'Tags'
@@ -270,25 +270,41 @@ if uploaded_file is not None:
         st.markdown("### 🔍 الأعمدة المتوفرة حالياً داخل ملفك هي:")
         st.write(list(df.columns))
     else:
-        df = df.dropna(subset=['Action', 'Team'])
+        # ملء خانات الفريق الفارغة بـ 'Unknown Team' لحمايتها من الـ dropna لو كانت السطور ناقصة
+        df['Team'] = df['Team'].fillna('Unknown Team')
+        df = df.dropna(subset=['Action'])
         
         if 'Tags' not in df.columns:
             df['Tags'] = ''
+        else:
+            df['Tags'] = df['Tags'].fillna('')
             
-        if 'X start' in df.columns:
-            df['x_scaled'] = df['X start'] * 120
-            df['y_scaled'] = df['Y start'] * 80
-            df['x_end_scaled'] = df['X end'] * 120
-            df['y_end_scaled'] = df['Y end'] * 80
-        elif 'x' in df.columns.str.lower():
-            x_col = [c for c in df.columns if c.lower() == 'x'][0]
-            y_col = [c for c in df.columns if c.lower() == 'y'][0]
-            df['x_scaled'] = df[x_col] if df[x_col].max() > 1 else df[x_col] * 120
-            df['y_scaled'] = df[y_col] if df[y_col].max() > 1 else df[y_col] * 80
-            df['x_end_scaled'] = df[x_col] if 'x end' not in df.columns.str.lower() else df['x_scaled']
-            df['y_end_scaled'] = df[y_col] if 'y end' not in df.columns.str.lower() else df['y_scaled']
+        # معالجة الإحداثيات الذكية بحروفها الكبيرة والصغيرة (X Start / Y Start)
+        col_map_lower = {c.lower(): c for c in df.columns}
+        
+        x_start_col = col_map_lower.get('x start') or col_map_lower.get('x start ') or col_map_lower.get('x')
+        y_start_col = col_map_lower.get('y start') or col_map_lower.get('y start ') or col_map_lower.get('y')
+        x_end_col = col_map_lower.get('x end') or col_map_lower.get('x end ')
+        y_end_col = col_map_lower.get('y end') or col_map_lower.get('y end ')
 
-        team_list = sorted(df['Team'].unique().tolist())
+        if x_start_col and y_start_col:
+            # لو المقاييس بين 0 و 1 اضرب في أبعاد الملعب المعتمدة (120x80)
+            df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
+            df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
+            
+            if x_end_col and y_end_col:
+                df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
+                df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_scaled] * 80
+            else:
+                df['x_end_scaled'] = df['x_scaled']
+                df['y_end_scaled'] = df['y_scaled']
+
+        # تصفية قائمة الأندية والفرق المتاحة
+        team_list = sorted([t for t in df['Team'].unique().tolist() if pd.notna(t) and t != ''])
+        if not team_list:
+            team_list = ['Default Team']
+            df['Team'] = 'Default Team'
+            
         selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
         team_df = df[df['Team'] == selected_team].copy()
 
@@ -326,9 +342,12 @@ if uploaded_file is not None:
             }
             
             for i, row in dataframe.iterrows():
+                if 'x_scaled' not in dataframe.columns or 'y_scaled' not in dataframe.columns:
+                    continue
                 act = str(row['Action']).lower()
-                tag = str(row['Tags']).lower() if 'Tags' in dataframe.columns else ''
-                is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag
+                tag = str(row['Tags']).lower()
+                is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag or 'pass' in tag or 'outcome: pass' in tag
+                if 'failed' in tag or 'failure' in tag: is_success = False
                 action_captured = False
                 
                 if 'goal' in act or 'goal' in tag or 'هدف' in act or 'هدف' in tag:
@@ -351,7 +370,7 @@ if uploaded_file is not None:
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                         action_captured = True
                     elif 'cross' in tag and "Crosses" in layers:
-                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):  # تم التطهير وحذف كلمة ريجا من هنا بنجاح!
+                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                         matrix["crosses"] += 1
                         if is_success: matrix["success_crosses"] += 1
@@ -391,7 +410,7 @@ if uploaded_file is not None:
                             pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='red', linewidth=3, ax=ax, zorder=5)
                     matrix["fouls"] += 1
 
-                elif any(w in act or w in tag for w in ['counterpress', 'press', 'recovery', 'ضغط']):
+                elif any(w in act or w in tag for w in ['counterpress', 'press', 'recovery', 'ضغط', 'miscontrol', 'dispossessed']):
                     if "Counterpress" in layers:
                         if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                             ax.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
@@ -501,11 +520,12 @@ if uploaded_file is not None:
             "🛡️ Team Actions Map"
         ])
 
+        # التعرف التلقائي الذكي على لستة اللاعبين من عمود 'Player' الجديد
         has_player_column = 'Player' in df.columns
         player_list = []
         if has_player_column:
             try:
-                player_list = sorted(team_df['Player'].dropna().unique().tolist())
+                player_list = sorted([p for p in team_df['Player'].dropna().unique().tolist() if str(p).strip() != ''])
             except Exception:
                 has_player_column = False
 
@@ -557,41 +577,4 @@ if uploaded_file is not None:
                 
                 st.markdown("---")
                 
-                st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
-                pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-                fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
-                parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
-                ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-                st.pyplot(fig_m3)
-        else:
-            with tab1: st.warning("⚠️ لم يتم العثور على عمود يخص أسماء اللاعبين في هذا الملف لعرض التحليلات الفردية.")
-            with tab2: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
-            with tab3: st.warning("⚠️ لم يتم العثور على عمود اللاعبين.")
-
-        with tab4:
-            st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
-            pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_th, ax_th = pitch_th.draw(figsize=(12, 9))
-            if len(team_df) > 1:
-                draw_premium_kde_heatmap(team_df, ax_th)
-            st.pyplot(fig_th)
-
-        with tab5:
-            st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🌍 Map 1: Team Full Tactical Performance Map (Attack & Defense)</h3>", unsafe_allow_html=True)
-            pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_all, ax_all = pitch_all.draw(figsize=(12, 9))
-            parse_action_metrics(team_df, ax_all, pitch_all, all_selected_layers, draw_mode=True, specific_type="all")
-            ax_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            st.pyplot(fig_all)
-            
-            st.markdown("---")
-            
-            st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
-            pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
-            parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defense")
-            ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            st.pyplot(fig_td)
-
-else:
-    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
+                st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4:
