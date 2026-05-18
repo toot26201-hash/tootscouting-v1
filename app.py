@@ -239,7 +239,11 @@ st.sidebar.markdown("## 🛠️ Tactical Control Unit")
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
 
 if uploaded_file is not None:
-    df = pd.read_csv(uploaded_file)
+    try:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8-sig')
+    except Exception as e:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
+
     df.columns = df.columns.str.strip()
     
     if 'X start' in df.columns:
@@ -295,25 +299,25 @@ if uploaded_file is not None:
             
             if 'goal' in act or 'goal' in tag or 'هدف' in act or 'هدف' in tag:
                 matrix["goals"] += 1
-                if draw_mode and (specific_type is None or specific_type == "defense") and "Goals" in layers:
+                if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all") and "Goals" in layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=650, color='gold', edgecolors='black', ax=ax, zorder=6)
 
             if 'pass' in act or 'تمرير' in act:
                 if 'through' in tag and "Through Balls" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "passes"):
+                    if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all"):
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax, zorder=4)
                     matrix["through_balls"] += 1
                     action_captured = True
                 elif "Normal Passes" in layers and not any(k in tag for k in ['cross', 'through', 'corner', 'free kick']):
-                    if draw_mode and (specific_type is None or specific_type == "passes"):
+                    if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all"):
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.5, zorder=3)
                     action_captured = True
                 elif 'corner' in tag and "Corners" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "crosses"):
+                    if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                     action_captured = True
                 elif 'cross' in tag and "Crosses" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "crosses"):
+                    if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                     matrix["crosses"] += 1
                     if is_success: matrix["success_crosses"] += 1
@@ -325,37 +329,37 @@ if uploaded_file is not None:
 
             elif any(w in act for w in ['tackle', 'inter', 'تدخل', 'قطع', 'تكل', 'تاكلز']):
                 if "Tackles" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                         pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='blue', linewidth=3, ax=ax, zorder=5)
                 matrix["tackles"] += 1
 
             elif any(w in act for w in ['clear', 'clearance', 'تشتيت', 'ابعاد']):
                 if "Clearances" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                         pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='purple', ax=ax, zorder=5)
                 matrix["clearances"] += 1
 
             elif any(w in act for w in ['aerial', 'هوائي', 'طير', 'رأس']):
                 if "Aerial Duels" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                         pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#2ecc71' if is_success else 'red', edgecolors='black', ax=ax, zorder=5)
                 if is_success: matrix["aerial_duels_won"] += 1
 
             elif any(w in act for w in ['duel', 'التحام', 'صراع', 'أرضي', 'ground']) and 'aerial' not in act:
                 if "Ground Duels" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                         pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#2ecc71' if is_success else 'red', ax=ax, zorder=5)
                 if is_success: matrix["ground_duels_won"] += 1
 
             elif any(w in act or w in tag for w in ['foul', 'خطأ', 'committed', 'suffered']):
                 if "Fouls" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                         pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='red', linewidth=3, ax=ax, zorder=5)
                 matrix["fouls"] += 1
 
             elif any(w in act or w in tag for w in ['counterpress', 'press', 'recovery', 'ضغط']):
                 if "Counterpress" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "defense"):
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                         ax.text(row.x_scaled, row.y_scaled, '#', color='black', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
                 matrix["counterpress"] += 1
                 
@@ -479,7 +483,7 @@ if uploaded_file is not None:
         render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
         render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
 
-    # 2. التابة الثانية: خريطة حرارية للفردي بالمنطق الانسيابي الدائري (KDE) - تم حذف اللوجو الشفاف من الملعب تماماً
+    # 2. التابة الثانية: خريطة حرارية للفردي بالمنطق الانسيابي الدائري (KDE)
     with tab2:
         sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
         p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
@@ -492,12 +496,22 @@ if uploaded_file is not None:
             
         st.pyplot(fig_h)
 
-    # 3. التابة الثالثة: الـ Player Actions Map المنفصلة تماماً تحت بعض - تم حذف اللوجو الشفاف تماماً
+    # 3. التابة الثالثة المحدثة: خريطة الأكشنز الفردية الشاملة في الأول وتحتها الخرائط المنفصلة
     with tab3:
         sel_player_t3 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
         p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
         
-        st.markdown("<h3 style='color: #2ecc71;'>📐 Map 1: Normal & Through Passes</h3>", unsafe_allow_html=True)
+        # التعديل الجديد: خريطة الأداء الشاملة والمضيئة للاعب (هجومي + دفاعي معاً) بكامل العرض
+        st.markdown("<h3 style='color: #38bdf8; text-align: center;'>🌍 Map 1: Player Full Performance Map (Attack & Defense Summary)</h3>", unsafe_allow_html=True)
+        pitch_ind_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_ind_all, ax_ind_all = pitch_ind_all.draw(figsize=(12, 9))
+        parse_action_metrics(p_df_t3, ax_ind_all, pitch_ind_all, all_selected_layers, draw_mode=True, specific_type="all")
+        ax_ind_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+        st.pyplot(fig_ind_all)
+        
+        st.markdown("---")
+        
+        st.markdown("<h3 style='color: #2ecc71;'>📐 Map 2: Normal & Through Passes</h3>", unsafe_allow_html=True)
         pitch_m1 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m1, ax_m1 = pitch_m1.draw(figsize=(11, 7))
         parse_action_metrics(p_df_t3, ax_m1, pitch_m1, all_selected_layers, draw_mode=True, specific_type="passes")
@@ -505,7 +519,7 @@ if uploaded_file is not None:
         
         st.markdown("---")
         
-        st.markdown("<h3 style='color: #38bdf8;'>🏹 Map 2: Crosses & Corners Matrix</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #38bdf8;'>🏹 Map 3: Crosses & Corners Matrix</h3>", unsafe_allow_html=True)
         pitch_m2 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m2, ax_m2 = pitch_m2.draw(figsize=(11, 7))
         parse_action_metrics(p_df_t3, ax_m2, pitch_m2, all_selected_layers, draw_mode=True, specific_type="crosses")
@@ -513,7 +527,7 @@ if uploaded_file is not None:
         
         st.markdown("---")
         
-        st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 3: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
+        st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
         pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
         parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
@@ -521,7 +535,7 @@ if uploaded_file is not None:
         ax_m3.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_m3)
 
-    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية للفريق كله - تم حذف اللوجو الشفاف تماماً
+    # 4. التابة الرابعة: تابة مستقلة ومخصوصة للخريطة الحرارية المتقدمة للفريق كله
     with tab4:
         st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: {selected_team}</h3>", unsafe_allow_html=True)
         pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
@@ -532,13 +546,23 @@ if uploaded_file is not None:
             
         st.pyplot(fig_th)
 
-    # 5. التابة الخامسة: تابة مستقلة لخرائط الإجراءات الجماعية للفريق بالكامل - تم حذف اللوجو الشفاف تماماً
+    # 5. التابة الخامسة: خرائط الإجراءات الجماعية للفريق بالكامل
     with tab5:
-        st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Team Combined Tactical Actions Map: {selected_team}</h3>", unsafe_allow_html=True)
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🌍 Map 1: Team Full Tactical Performance Map (Attack & Defense)</h3>", unsafe_allow_html=True)
+        pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_all, ax_all = pitch_all.draw(figsize=(12, 9))
+        
+        parse_action_metrics(team_df, ax_all, pitch_all, all_selected_layers, draw_mode=True, specific_type="all")
+        ax_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
+        st.pyplot(fig_all)
+        
+        st.markdown("---")
+        
+        st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
         pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
         fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
         
-        parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True)
+        parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defense")
         ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
         st.pyplot(fig_td)
 
