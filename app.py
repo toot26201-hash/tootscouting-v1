@@ -349,7 +349,7 @@ if uploaded_file is not None:
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                         action_captured = True
                     elif 'cross' in tag and "Crosses" in layers:
-                        if draw_mode upgrade and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                        if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):  # تم إصلاح سطر الـ upgrade هنا بنجاح!
                             pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else 'red', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                         matrix["crosses"] += 1
                         if is_success: matrix["success_crosses"] += 1
@@ -579,7 +579,7 @@ if uploaded_file is not None:
             
             st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
             pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
-            fig_td, ax_td = pitch_td.draw(figsize=(12, 9)) # القوس اتقفل هنا بالمللي بنجاح!
+            fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
             parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defense")
             ax_td.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
             st.pyplot(fig_td)
