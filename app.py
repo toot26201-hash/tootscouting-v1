@@ -376,7 +376,7 @@ if uploaded_file is not None:
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                     action_captured = True
                 elif 'cross' in tag and "Crosses" in layers:
-                    if draw_mode groove and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                    if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else '#e74c3c', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                     matrix["crosses"] += 1
                     if is_success: matrix["success_crosses"] += 1
@@ -505,7 +505,6 @@ if uploaded_file is not None:
             </div>
         """, unsafe_allow_html=True)
 
-    # 🔬 Re-arranged Tabs System: Heatmap First, Maps Second, Stats in a dedicated premium third Tab
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
         "🔥 Player Tactical Heatmap", 
         "🏃‍♂️ Player Actions Map",
@@ -568,7 +567,6 @@ if uploaded_file is not None:
             st.pyplot(fig_m3)
 
         with tab3:
-            # 📊 Dedicated Premium Tab for Performance Statistics Analytics
             sel_player_t3 = st.selectbox("🎯 Focus Player (Summary Stats):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
             p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
             p_stats_t3 = parse_action_metrics(p_df_t3, None, None, all_selected_layers, draw_mode=False)
