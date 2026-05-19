@@ -10,10 +10,9 @@ import matplotlib.colors as mcolors
 import numpy as np
 import base64
 
-# دالة ذكية لقراءة مسار اللوجو وتحويله لـ Base64 للكارت فقط
+# Function to read and encode the club logo to Base64
 def get_base64_logo():
     current_dir = os.path.dirname(__file__)
-    
     possible_paths = [
         os.path.join(current_dir, 'Espoon_Palloseura_logo.png'),
         os.path.join(current_dir, 'espoon_palloseura_logo.png'),
@@ -246,7 +245,7 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # 🎯 ميكانيزم المابينج الدقيق والمفصل لملف المباريات المرفوع
+    # Selective Auto-Mapping Mechanics
     rename_dict = {}
     for col in df.columns:
         c_low = col.lower().strip()
@@ -256,7 +255,7 @@ if uploaded_file is not None:
 
     for col in df.columns:
         c_low = col.lower().strip()
-        if 'players' in c_low or 'player' in c_low or c_low == 'لاعب':
+        if 'players' in c_low or 'player' in c_low:
             rename_dict[col] = 'Player'
             break
 
@@ -269,13 +268,12 @@ if uploaded_file is not None:
     if rename_dict:
         df = df.rename(columns=rename_dict)
 
-    # توحيد الفريق لـ EPS لضمان عدم حدوث فراغات
     df['Team'] = 'EPS'
     df = df.dropna(subset=['Action', 'Player'])
     df['Tags'] = df['Tags'].fillna('')
     df['Player'] = df['Player'].astype(str).str.strip()
 
-    # معالجة الإحداثيات والضرب في مقاس الملعب المعتمد (120x80)
+    # Coordinate Scaling System (120x80 Dimensions)
     col_map_lower = {c.lower().strip(): c for c in df.columns}
     x_start_col = col_map_lower.get('x start') or col_map_lower.get('x')
     y_start_col = col_map_lower.get('y start') or col_map_lower.get('y')
@@ -312,8 +310,8 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='blue', marker='>', linestyle='-', label='Cross Success', markersize=8),
             mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Cross Failed', markersize=8),
             mlines.Line2D([], [], color='#FF69B4', marker='>', linestyle='-', label='Through Ball', markersize=8),
-            mlines.Line2D([], [], color='#2563eb', marker='*', label='Shot On-Target (Blue Star 🌟)', linestyle='None', markersize=12),
-            mlines.Line2D([], [], color='#dc2626', marker='*', label='Shot Off-Target (Red Star 🌟)', linestyle='None', markersize=12),
+            mlines.Line2D([], [], color='#2563eb', marker='*', label='Shot On-Target (Blue 🌟)', linestyle='None', markersize=12),
+            mlines.Line2D([], [], color='#dc2626', marker='*', label='Shot Off-Target (Red 🌟)', linestyle='None', markersize=12),
             mlines.Line2D([], [], color='blue', marker='x', label='Tackle (Blue X)', linestyle='None', markersize=10, markeredgewidth=2),
             mlines.Line2D([], [], color='purple', marker='d', label='Clearance', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='#2ecc71', marker='s', label='Ground Duel Won', linestyle='None', markersize=10),
@@ -322,7 +320,7 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='red', marker='^', label='Aerial Lost', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='red', marker='x', label='Foul (Red X)', linestyle='None', markersize=10, markeredgewidth=2),
             mlines.Line2D([], [], color='black', marker='o', label='Counterpress (#)', linestyle='None', markersize=8),
-            mlines.Line2D([], [], color='gold', marker='*', label='Goal المؤكد ⚽', linestyle='None', markersize=15)
+            mlines.Line2D([], [], color='gold', marker='*', label='Goal Confirmed ⚽', linestyle='None', markersize=15)
         ]
 
     def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True, specific_type=None):
@@ -338,17 +336,15 @@ if uploaded_file is not None:
             act = str(row['Action']).lower()
             tag = str(row['Tags']).lower()
             
-            is_success = 'success' in tag or 'ناجح' in tag or 'won' in tag or 'win' in tag or 'recovery' in tag or 'pass' in tag
+            is_success = 'success' in tag or 'won' in tag or 'win' in tag or 'recovery' in tag or 'pass' in tag
             if 'failed' in tag or 'failure' in tag: is_success = False
             action_captured = False
             
-            # رصد الأهداف المؤكدة (النجمة الدهبية الكبيرة)
-            if 'goal' in act or 'goal' in tag or 'هدف' in act:
+            if 'goal' in act or 'goal' in tag:
                 matrix["goals"] += 1
                 if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all") and "Goals" in layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=700, color='gold', edgecolors='black', ax=ax, zorder=6)
 
-            # 🎯 ميكانيزم رصد التسديدات وفصلها لنجمة زرقاء (أون تارجت) ونجمة حمراء (أوف تارجت)
             if 'shot' in act or 'sh/a' in act:
                 if is_success:
                     matrix["shots_on_target"] += 1
@@ -488,15 +484,15 @@ if uploaded_file is not None:
                         <tr><td><b>Total Passing</b></td><td>{stats['total_passes'] if "Normal Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['total_passes'] if "Normal Passes" in active_layers else 0, 40)} <span class="stat-badge">{p_pct:.1f}% Acc</span></td></tr>
                         <tr><td><b>Crosses Matrix</b></td><td>{stats['crosses'] if "Crosses" in active_layers else 0}</td><td>{get_live_bar_html(stats['crosses'] if "Crosses" in active_layers else 0, 15)} <span class="stat-badge">{c_pct:.1f}% Acc</span></td></tr>
                         <tr><td><b>Through Balls</b></td><td>{stats['through_balls'] if "Through Balls" in active_layers else 0}</td><td>{get_live_bar_html(stats['through_balls'] if "Through Balls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
-                        <tr><td><b style="color: #2563eb;">🌟 Shots On-Target (زرقاء)</b></td><td>{stats['shots_on_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_on_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #93c5fd; color: #1e3a8a;">🎯 On Goal</span></td></tr>
-                        <tr><td><b style="color: #dc2626;">🌟 Shots Off-Target (حمراء)</b></td><td>{stats['shots_off_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_off_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #fca5a5; color: #7f1d1d;">Missed</span></td></tr>
+                        <tr><td><b style="color: #2563eb;">🌟 Shots On-Target (Blue)</b></td><td>{stats['shots_on_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_on_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #93c5fd; color: #1e3a8a;">🎯 On Goal</span></td></tr>
+                        <tr><td><b style="color: #dc2626;">🌟 Shots Off-Target (Red)</b></td><td>{stats['shots_off_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_off_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #fca5a5; color: #7f1d1d;">Missed</span></td></tr>
                         <tr><td><b>Defensive Tackles</b></td><td>{stats['tackles'] if "Tackles" in active_layers else 0}</td><td>{get_live_bar_html(stats['tackles'] if "Tackles" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
-                        <tr><td><b>Clearances (تشتيت)</b></td><td>{stats['clearances'] if "Clearances" in active_layers else 0}</td><td>{get_live_bar_html(stats['clearances'] if "Clearances" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Clearances</b></td><td>{stats['clearances'] if "Clearances" in active_layers else 0}</td><td>{get_live_bar_html(stats['clearances'] if "Clearances" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
                         <tr><td><b>Ground Duels Won</b></td><td>{stats['ground_duels_won'] if "Ground Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['ground_duels_won'] if "Ground Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
                         <tr><td><b>Aerial Duels Won</b></td><td>{stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
                         <tr><td><b>Fouls Operations</b></td><td>{stats['fouls'] if "Fouls" in active_layers else 0}</td><td>{get_live_bar_html(stats['fouls'] if "Fouls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
                         <tr><td><b>Counterpress Actions (#)</b></td><td>{stats['counterpress'] if "Counterpress" in active_layers else 0}</td><td>{get_live_bar_html(stats['counterpress'] if "Counterpress" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
-                        <tr><td style="color: gold; font-weight: bold;">Net Shaken</td><td>{stats['goals'] if "Goals" in active_layers else 0}</td><td>{get_live_bar_html(stats['goals'] if "Goals" in active_layers else 0, 5)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Net Shaken</span></td></tr>
+                        <tr><td style="color: gold; font-weight: bold;">Goals Scored</td><td>{stats['goals'] if "Goals" in active_layers else 0}</td><td>{get_live_bar_html(stats['goals'] if "Goals" in active_layers else 0, 5)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Net Shaken</span></td></tr>
                     </tbody>
                 </table>
             </div>
@@ -529,7 +525,6 @@ if uploaded_file is not None:
             fig_h, ax_h = pitch_h.draw(figsize=(12, 9))
             if len(p_df_t2) > 0:
                 draw_premium_kde_heatmap(p_df_t2, ax_h)
-            # 🏷️ طباعة اسم اللاعب كـ Watermark مضيئة جوة العشب نفسه
             ax_h.text(60, 40, str(sel_player_t2), fontsize=32, color='#1e293b', alpha=0.18, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_h)
 
@@ -542,7 +537,6 @@ if uploaded_file is not None:
             fig_ind_all, ax_ind_all = pitch_ind_all.draw(figsize=(12, 9))
             parse_action_metrics(p_df_t3, ax_ind_all, pitch_ind_all, all_selected_layers, draw_mode=True, specific_type="all")
             ax_ind_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            # 🏷️ طباعة اسم اللاعب كـ Watermark جوة الملعب
             ax_ind_all.text(60, 40, str(sel_player_t3), fontsize=32, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_ind_all)
             
@@ -552,7 +546,6 @@ if uploaded_file is not None:
             fig_m1, ax_m1 = pitch_m1.draw(figsize=(11, 7))
             parse_action_metrics(p_df_t3, ax_m1, pitch_m1, all_selected_layers, draw_mode=True, specific_type="passes")
             ax_m1.legend(handles=[get_full_legend()[5], get_full_legend()[6]], loc='upper right', fontsize='small')
-            # 🏷️ طباعة اسم اللاعب كـ Watermark جوة الملعب
             ax_m1.text(60, 40, str(sel_player_t3), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_m1)
             
@@ -561,7 +554,6 @@ if uploaded_file is not None:
             pitch_m2 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_m2, ax_m2 = pitch_m2.draw(figsize=(11, 7))
             parse_action_metrics(p_df_t3, ax_m2, pitch_m2, all_selected_layers, draw_mode=True, specific_type="crosses")
-            # 🏷️ طباعة اسم اللاعب كـ Watermark جوة الملعب
             ax_m2.text(60, 40, str(sel_player_t3), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_m2)
             
@@ -571,11 +563,10 @@ if uploaded_file is not None:
             fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
             parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
             ax_m3.legend(handles=get_full_legend()[7:], loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            # 🏷️ طباعة اسم اللاعب كـ Watermark جوة الملعب
             ax_m3.text(60, 40, str(sel_player_t3), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_m3)
     else:
-        st.warning("⚠️ لم يتم العثور على لاعبين في الملف.")
+        st.warning("⚠️ No players found in the uploaded file.")
 
     with tab4:
         st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: EPS</h3>", unsafe_allow_html=True)
