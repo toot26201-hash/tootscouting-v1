@@ -295,12 +295,11 @@ if uploaded_file is not None:
     selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
     team_df = df.copy()
 
-    # 🎯 Updated Filters: Moved Goals to Attacking panel and added Key Passes option
-    with st.sidebar.expander("amp; Attack Filters", expanded=True):
+    with st.sidebar.expander("🎯 Passing & Attack Filters", expanded=True):
         selected_passes = st.multiselect("Pass & Attack Types:", ["Normal Passes", "Crosses", "Through Balls", "Key Passes", "Corners", "Shots", "Goals"], default=["Normal Passes", "Crosses", "Shots", "Goals"])
         
     with st.sidebar.expander("🛡️ Defensive Filters", expanded=True):
-        selected_defense = m = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels", "Counterpress"])
+        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels", "Counterpress"])
 
     all_selected_layers = selected_passes + selected_defense
 
@@ -342,13 +341,11 @@ if uploaded_file is not None:
             if 'failed' in tag or 'failure' in tag: is_success = False
             action_captured = False
             
-            # Goal Detection (Now grouped logically under attacking attributes)
             if 'goal' in act or 'goal' in tag:
                 matrix["goals"] += 1
                 if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all") and "Goals" in layers:
                     pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=750, color='gold', edgecolors='black', ax=ax, zorder=6)
 
-            # Shot Detection Matrix
             if 'shot' in act or 'sh/a' in act:
                 if is_success:
                     matrix["shots_on_target"] += 1
@@ -360,7 +357,6 @@ if uploaded_file is not None:
                         pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=450, color='#dc2626', edgecolors='white', ax=ax, zorder=5)
 
             if 'pass' in act:
-                # Key Pass Filtration Mechanism 🔑
                 if 'key' in tag or 'key pass' in tag:
                     matrix["key_passes"] += 1
                     if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all") and "Key Passes" in layers:
@@ -380,7 +376,7 @@ if uploaded_file is not None:
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='orange' if is_success else 'red', ax=ax, zorder=4)
                     action_captured = True
                 elif 'cross' in tag and "Crosses" in layers:
-                    if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                    if draw_mode groove and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
                         pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='blue' if is_success else '#e74c3c', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
                     matrix["crosses"] += 1
                     if is_success: matrix["success_crosses"] += 1
@@ -494,7 +490,7 @@ if uploaded_file is not None:
                         <tr><td><b>Total Passing</b></td><td>{stats['total_passes'] if "Normal Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['total_passes'] if "Normal Passes" in active_layers else 0, 40)} <span class="stat-badge">{p_pct:.1f}% Acc</span></td></tr>
                         <tr><td><b>Crosses Matrix</b></td><td>{stats['crosses'] if "Crosses" in active_layers else 0}</td><td>{get_live_bar_html(stats['crosses'] if "Crosses" in active_layers else 0, 15)} <span class="stat-badge">{c_pct:.1f}% Acc</span></td></tr>
                         <tr><td><b>Through Balls</b></td><td>{stats['through_balls'] if "Through Balls" in active_layers else 0}</td><td>{get_live_bar_html(stats['through_balls'] if "Through Balls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
-                        <tr><td><b style="color: #fbbf24;">🔑 Key Passes (صناعة فرص)</b></td><td>{stats['key_passes'] if "Key Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['key_passes'] if "Key Passes" in active_layers else 0, 10)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Chances</span></td></tr>
+                        <tr><td><b style="color: #fbbf24;">🔑 Key Passes</b></td><td>{stats['key_passes'] if "Key Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['key_passes'] if "Key Passes" in active_layers else 0, 10)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Chances</span></td></tr>
                         <tr><td><b style="color: #2563eb;">🌟 Shots On-Target</b></td><td>{stats['shots_on_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_on_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #93c5fd; color: #1e3a8a;">🎯 On Goal</span></td></tr>
                         <tr><td><b style="color: #dc2626;">🌟 Shots Off-Target</b></td><td>{stats['shots_off_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_off_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #fca5a5; color: #7f1d1d;">Missed</span></td></tr>
                         <tr><td><b>Defensive Tackles</b></td><td>{stats['tackles'] if "Tackles" in active_layers else 0}</td><td>{get_live_bar_html(stats['tackles'] if "Tackles" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
@@ -509,10 +505,11 @@ if uploaded_file is not None:
             </div>
         """, unsafe_allow_html=True)
 
+    # 🔬 Re-arranged Tabs System: Heatmap First, Maps Second, Stats in a dedicated premium third Tab
     tab1, tab2, tab3, tab4, tab5 = st.tabs([
-        "📊 Player Profile Summary", 
         "🔥 Player Tactical Heatmap", 
         "🏃‍♂️ Player Actions Map",
+        "📊 Player Performance Stats",
         "👥 Team Tactical Heatmap",
         "🛡️ Team Actions Map"
     ])
@@ -523,59 +520,61 @@ if uploaded_file is not None:
         player_options = {p: f"🛡️ {p}" for p in player_list}
         
         with tab1:
-            sel_player_t1 = st.selectbox("🎯 Focus Player (Summary):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
+            sel_player_t1 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
             p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
-            p_stats_t1 = parse_action_metrics(p_df_t1, None, None, all_selected_layers, draw_mode=False)
-            render_premium_player_card(sel_player_t1, selected_team, p_stats_t1)
-            render_player_summary_table(sel_player_t1, p_stats_t1, all_selected_layers)
-
-        with tab2:
-            sel_player_t2 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
-            p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
             pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_h, ax_h = pitch_h.draw(figsize=(12, 9))
-            if len(p_df_t2) > 0:
-                draw_premium_kde_heatmap(p_df_t2, ax_h)
-            ax_h.text(60, 40, str(sel_player_t2), fontsize=32, color='#1e293b', alpha=0.18, fontweight='bold', ha='center', va='center', zorder=2)
+            if len(p_df_t1) > 0:
+                draw_premium_kde_heatmap(p_df_t1, ax_h)
+            ax_h.text(60, 40, str(sel_player_t1), fontsize=32, color='#1e293b', alpha=0.18, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_h)
 
-        with tab3:
-            sel_player_t3 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
-            p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
+        with tab2:
+            sel_player_t2 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
+            p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
             
             st.markdown("<h3 style='color: #38bdf8; text-align: center;'>🌍 Map 1: Player Full Performance Map (Attack & Defense Summary)</h3>", unsafe_allow_html=True)
             pitch_ind_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_ind_all, ax_ind_all = pitch_ind_all.draw(figsize=(12, 9))
-            parse_action_metrics(p_df_t3, ax_ind_all, pitch_ind_all, all_selected_layers, draw_mode=True, specific_type="all")
+            parse_action_metrics(p_df_t2, ax_ind_all, pitch_ind_all, all_selected_layers, draw_mode=True, specific_type="all")
             ax_ind_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            ax_ind_all.text(60, 40, str(sel_player_t3), fontsize=32, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
+            ax_ind_all.text(60, 40, str(sel_player_t2), fontsize=32, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_ind_all)
             
             st.markdown("---")
             st.markdown("<h3 style='color: #2ecc71;'>📐 Map 2: Normal, Through, Key Passes & Shots Matrix</h3>", unsafe_allow_html=True)
             pitch_m1 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_m1, ax_m1 = pitch_m1.draw(figsize=(11, 7))
-            parse_action_metrics(p_df_t3, ax_m1, pitch_m1, all_selected_layers, draw_mode=True, specific_type="passes")
+            parse_action_metrics(p_df_t2, ax_m1, pitch_m1, all_selected_layers, draw_mode=True, specific_type="passes")
             ax_m1.legend(handles=[get_full_legend()[4], get_full_legend()[5], get_full_legend()[6], get_full_legend()[7]], loc='upper right', fontsize='small')
-            ax_m1.text(60, 40, str(sel_player_t3), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
+            ax_m1.text(60, 40, str(sel_player_t2), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_m1)
             
             st.markdown("---")
             st.markdown("<h3 style='color: #38bdf8;'>🏹 Map 3: Crosses & Corners Matrix</h3>", unsafe_allow_html=True)
             pitch_m2 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_m2, ax_m2 = pitch_m2.draw(figsize=(11, 7))
-            parse_action_metrics(p_df_t3, ax_m2, pitch_m2, all_selected_layers, draw_mode=True, specific_type="crosses")
-            ax_m2.text(60, 40, str(sel_player_t3), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
+            parse_action_metrics(p_df_t2, ax_m2, pitch_m2, all_selected_layers, draw_mode=True, specific_type="crosses")
+            ax_m2.text(60, 40, str(sel_player_t2), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_m2)
             
             st.markdown("---")
             st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
             pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
             fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
-            parse_action_metrics(p_df_t3, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
+            parse_action_metrics(p_df_t2, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
             ax_m3.legend(handles=get_full_legend()[8:], loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#ffffff', edgecolor='#e2e8f0')
-            ax_m3.text(60, 40, str(sel_player_t3), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
+            ax_m3.text(60, 40, str(sel_player_t2), fontsize=28, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=2)
             st.pyplot(fig_m3)
+
+        with tab3:
+            # 📊 Dedicated Premium Tab for Performance Statistics Analytics
+            sel_player_t3 = st.selectbox("🎯 Focus Player (Summary Stats):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
+            p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
+            p_stats_t3 = parse_action_metrics(p_df_t3, None, None, all_selected_layers, draw_mode=False)
+            render_premium_player_card(sel_player_t3, selected_team, p_stats_t3)
+            render_player_summary_table(sel_player_t3, p_stats_t3, all_selected_layers)
+            
     else:
         st.warning("⚠️ No players found in the uploaded file.")
 
