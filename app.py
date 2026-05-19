@@ -19,19 +19,17 @@ def get_base64_logo():
         'Espoon_Palloseura_logo.png',
         'espoon_palloseura_logo.png'
     ]
-    
     logo_filename = None
     for path in possible_paths:
         if os.path.exists(path):
             logo_filename = path
             break
-            
     if logo_filename and os.path.exists(logo_filename):
         with open(logo_filename, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode()
     return None
 
-# 1. Page Config & Strict Dark Premium Theme (TootScouting Global Style)
+# Page Config & Strict Dark Premium Theme (TootScouting Global Style)
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
 st.markdown("""
@@ -41,19 +39,13 @@ st.markdown("""
         background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
         color: #f8fafc !important;
     }
-    
-    /* Sidebar Styling */
     [data-testid="stSidebar"] {
         background-color: #0f172a !important;
         border-right: 1px solid #334155;
     }
-    
-    /* Text Typography Upgrades */
     h1, h2, h3, p, span, label, .stMarkdown {
         color: #f8fafc !important;
     }
-    
-    /* Custom Navigation Tabs styling */
     .stTabs [data-baseweb="tab-list"] {
         gap: 12px;
         background-color: #0f172a;
@@ -74,36 +66,42 @@ st.markdown("""
         border-color: #a47e3c !important;
     }
 
-    /* PREMIUM SCOUTLAB PLAYER CARD DESIGN with Neon/Glow Effects */
+    /* CYBER GLOW GLOWING PLAYER CARD DESIGN */
     .premium-player-card {
-        background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%);
         border: 2px solid #38bdf8;
-        border-radius: 16px;
-        padding: 24px;
-        box-shadow: 0 0 15px rgba(56, 189, 248, 0.6), 0 20px 25px -5px rgba(0, 0, 0, 0.7);
+        border-radius: 20px;
+        padding: 26px;
+        box-shadow: 0 0 30px rgba(56, 189, 248, 0.7), inset 0 0 20px rgba(56, 189, 248, 0.2);
         display: flex;
         align-items: center;
         justify-content: space-between;
         margin-bottom: 25px;
         position: relative;
         overflow: hidden;
+        animation: cardGlowPulse 4s infinite alternate;
+    }
+    @keyframes cardGlowPulse {
+        0% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
+        100% { box-shadow: 0 0 35px rgba(56, 189, 248, 0.9); }
     }
     .premium-card-left {
         display: flex;
         align-items: center;
         gap: 20px;
+        z-index: 2;
     }
     .premium-player-img-wrapper {
         position: relative;
-        width: 110px;
-        height: 110px;
+        width: 115px;
+        height: 115px;
         border-radius: 50%;
         border: 3px solid #fbbf24;
         background-color: #ffffff !important; 
         display: flex;
         align-items: center;
         justify-content: center;
-        box-shadow: 0 0 15px rgba(251, 191, 36, 0.6);
+        box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
         overflow: hidden;
     }
     .premium-player-logo-img {
@@ -112,45 +110,44 @@ st.markdown("""
         object-fit: contain;
         padding: 6px;
     }
-    .premium-player-avatar {
-        font-size: 55px;
-    }
     .premium-player-meta h2 {
         margin: 0;
-        font-size: 2rem !important;
+        font-size: 2.2rem !important;
         font-weight: 800;
         color: #ffffff;
-        letter-spacing: -0.5px;
+        text-shadow: 0 0 10px rgba(255,255,255,0.4);
     }
     .premium-player-meta p {
         margin: 4px 0 0 0;
         font-size: 1rem;
-        color: #94a3b8;
-        font-weight: 500;
+        color: #38bdf8;
+        font-weight: 600;
     }
     .premium-card-right {
         display: flex;
         gap: 15px;
+        z-index: 2;
     }
     .premium-stat-tile {
-        background: rgba(30, 41, 59, 0.7);
-        border: 1px solid rgba(56, 189, 248, 0.3);
-        border-radius: 12px;
-        padding: 15px;
-        min-width: 100px;
+        background: rgba(15, 23, 42, 0.85);
+        border: 1px solid rgba(56, 189, 248, 0.4);
+        border-radius: 14px;
+        padding: 16px;
+        min-width: 105px;
         text-align: center;
-        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2);
+        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
     }
     .premium-stat-tile-large {
-        background: linear-gradient(135deg, #a47e3c 0%, #6d4c1b 100%);
-        border: 1px solid #fbbf24;
-        box-shadow: 0 0 10px rgba(251, 191, 36, 0.4);
+        background: linear-gradient(135deg, #0284c7 0%, #1e3a8a 100%);
+        border: 2px solid #38bdf8;
+        box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
     }
     .premium-tile-val {
-        font-size: 1.8rem;
-        font-weight: 800;
+        font-size: 2rem;
+        font-weight: 900;
         color: #ffffff;
         line-height: 1;
+        text-shadow: 0 0 8px rgba(255,255,255,0.6);
     }
     .premium-tile-lbl {
         font-size: 0.75rem;
@@ -164,7 +161,7 @@ st.markdown("""
         color: #f1f5f9;
     }
 
-    /* Player Performance Summary Table Theme with Neon Progress Bars */
+    /* Progress Table Container */
     .summary-table-container {
         background: #1e293b;
         padding: 24px;
@@ -178,7 +175,7 @@ st.markdown("""
         font-weight: 700;
         color: #f8fafc;
         margin-bottom: 16px;
-        border-bottom: 2px solid #a47e3c;
+        border-bottom: 2px solid #38bdf8;
         padding-bottom: 8px;
     }
     .player-summary-table {
@@ -211,8 +208,6 @@ st.markdown("""
         font-weight: 700;
         border: 1px solid rgba(56, 189, 248, 0.4);
     }
-    
-    /* Progress Bar Neon Design */
     .progress-bar-bg {
         background-color: #0f172a;
         border-radius: 6px;
@@ -253,13 +248,11 @@ if uploaded_file is not None:
         if 'event type' in c_low or 'event_type' in c_low or c_low == 'action' or c_low == 'event':
             rename_dict[col] = 'Action'
             break
-
     for col in df.columns:
         c_low = col.lower().strip()
         if 'players' in c_low or 'player' in c_low:
             rename_dict[col] = 'Player'
             break
-
     for col in df.columns:
         c_low = col.lower().strip()
         if 'tag' in c_low or 'tags' in c_low:
@@ -284,7 +277,6 @@ if uploaded_file is not None:
     if x_start_col and y_start_col:
         df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
         df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
-        
         if x_end_col and y_end_col:
             df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
             df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
@@ -331,13 +323,11 @@ if uploaded_file is not None:
             "through_balls": 0, "key_passes": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0,
             "aerial_duels_won": 0, "fouls": 0, "counterpress": 0, "goals": 0, "shots_on_target": 0, "shots_off_target": 0
         }
-        
         for i, row in dataframe.iterrows():
             if 'x_scaled' not in dataframe.columns or 'y_scaled' not in dataframe.columns:
                 continue
             act = str(row['Action']).lower()
             tag = str(row['Tags']).lower()
-            
             is_success = 'success' in tag or 'won' in tag or 'win' in tag or 'recovery' in tag or 'pass' in tag
             if 'failed' in tag or 'failure' in tag: is_success = False
             action_captured = False
@@ -382,7 +372,6 @@ if uploaded_file is not None:
                     matrix["crosses"] += 1
                     if is_success: matrix["success_crosses"] += 1
                     action_captured = True
-                
                 if action_captured:
                     matrix["total_passes"] += 1
                     if is_success: matrix["success_passes"] += 1
@@ -422,14 +411,12 @@ if uploaded_file is not None:
                     if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
                         ax.text(row.x_scaled, row.y_scaled, '#', color='#ffffff', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
                 matrix["counterpress"] += 1
-                
         return matrix
 
     def draw_premium_kde_heatmap(dataframe, ax):
-        # Optimized Glow Palette for Pitch backgrounds
-        scout_lab_colors = ["#ffffff", "#1e3a8a", "#0d9488", "#10b981", "#fbbf24", "#ef4444"]
-        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
-        sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.8, bw_method=0.28, zorder=1, ax=ax)
+        scout_lab_colors = ["#000000", "#1e3a8a", "#0d9488", "#10b981", "#fbbf24", "#ef4444"]
+        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab_dark", scout_lab_colors, N=256)
+        sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.05, alpha=0.75, bw_method=0.28, zorder=1, ax=ax)
 
     def render_premium_player_card(player_name, selected_team, stats):
         p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
@@ -437,10 +424,8 @@ if uploaded_file is not None:
         total_shots = stats['shots_on_target'] + stats['shots_off_target']
         calculated_rating = int(60 + (p_pct * 0.25) + (total_def * 0.5) + (stats['shots_on_target'] * 0.8) + (stats['key_passes'] * 1.2))
         if calculated_rating > 99: calculated_rating = 99
-
         logo_b64 = get_base64_logo()
         avatar_html = f'<img src="data:image/png;base64,{logo_b64}" class="premium-player-logo-img" />' if logo_b64 else '<span class="premium-player-avatar">🏃‍♂️</span>'
-
         st.markdown(f"""
             <div class="premium-player-card">
                 <div class="premium-card-left">
@@ -482,7 +467,128 @@ if uploaded_file is not None:
             pct = (val / max_val) * 100 if val > 0 else 0
             if pct > 100: pct = 100
             return f'<div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {pct}%;"></div></div>'
-
         st.markdown(f"""
             <div class="summary-table-container">
-                <div class="summary-title">📊 Live Interactive Summary Table (All-Bars Dashboard)http://googleusercontent.com/image_generation_content/1
+                <div class="summary-title">📊 Live Interactive Summary Table (All-Bars Dashboard)</div>
+                <table class="player-summary-table">
+                    <thead><tr><th>Metric Category</th><th>Attempts Count</th><th>Visual Live Progress Bar</th></tr></thead>
+                    <tbody>
+                        <tr><td><b>Total Passing</b></td><td>{stats['total_passes'] if "Normal Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['total_passes'] if "Normal Passes" in active_layers else 0, 40)} <span class="stat-badge">{p_pct:.1f}% Acc</span></td></tr>
+                        <tr><td><b>Crosses Matrix</b></td><td>{stats['crosses'] if "Crosses" in active_layers else 0}</td><td>{get_live_bar_html(stats['crosses'] if "Crosses" in active_layers else 0, 15)} <span class="stat-badge">{c_pct:.1f}% Acc</span></td></tr>
+                        <tr><td><b>Through Balls</b></td><td>{stats['through_balls'] if "Through Balls" in active_layers else 0}</td><td>{get_live_bar_html(stats['through_balls'] if "Through Balls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b style="color: #fbbf24;">🔑 Key Passes</b></td><td>{stats['key_passes'] if "Key Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['key_passes'] if "Key Passes" in active_layers else 0, 10)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Chances</span></td></tr>
+                        <tr><td><b style="color: #3b82f6;">🌟 Shots On-Target</b></td><td>{stats['shots_on_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_on_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #93c5fd; color: #1e3a8a;">🎯 On Goal</span></td></tr>
+                        <tr><td><b style="color: #ef4444;">🌟 Shots Off-Target</b></td><td>{stats['shots_off_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_off_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #fca5a5; color: #7f1d1d;">Missed</span></td></tr>
+                        <tr><td><b>Defensive Tackles</b></td><td>{stats['tackles'] if "Tackles" in active_layers else 0}</td><td>{get_live_bar_html(stats['tackles'] if "Tackles" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Clearances</b></td><td>{stats['clearances'] if "Clearances" in active_layers else 0}</td><td>{get_live_bar_html(stats['clearances'] if "Clearances" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Ground Duels Won</b></td><td>{stats['ground_duels_won'] if "Ground Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['ground_duels_won'] if "Ground Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
+                        <tr><td><b>Aerial Duels Won</b></td><td>{stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
+                        <tr><td><b>Fouls Operations</b></td><td>{stats['fouls'] if "Fouls" in active_layers else 0}</td><td>{get_live_bar_html(stats['fouls'] if "Fouls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Counterpress Actions (#)</b></td><td>{stats['counterpress'] if "Counterpress" in active_layers else 0}</td><td>{get_live_bar_html(stats['counterpress'] if "Counterpress" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td style="color: gold; font-weight: bold;">Goals Scored</td><td>{stats['goals'] if "Goals" in active_layers else 0}</td><td>{get_live_bar_html(stats['goals'] if "Goals" in active_layers else 0, 5)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Net Shaken</span></td></tr>
+                    </tbody>
+                </table>
+            </div>
+        """, unsafe_allow_html=True)
+
+    tab1, tab2, tab3, tab4, tab5 = st.tabs([
+        "🔥 Player Tactical Heatmap", 
+        "🏃‍♂️ Player Actions Map",
+        "📊 Player Performance Stats",
+        "👥 Team Tactical Heatmap",
+        "🛡️ Team Actions Map"
+    ])
+    player_list = sorted([p for p in team_df['Player'].dropna().unique().tolist() if str(p).strip() != ''])
+
+    if len(player_list) > 0:
+        player_options = {p: f"🛡️ {p}" for p in player_list}
+        with tab1:
+            sel_player_t1 = st.selectbox("🎯 Focus Player (Heatmap):", options=player_list, format_func=lambda x: player_options[x], key="sb_t1")
+            p_df_t1 = team_df[team_df['Player'] == sel_player_t1].copy()
+            pitch_h = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+            fig_h, ax_h = pitch_h.draw(figsize=(12, 9))
+            fig_h.patch.set_facecolor('#0f172a')
+            if len(p_df_t1) > 0:
+                draw_premium_kde_heatmap(p_df_t1, ax_h)
+            ax_h.text(60, 40, str(sel_player_t1), fontsize=32, color='#ffffff', alpha=0.08, fontweight='bold', ha='center', va='center', zorder=2)
+            st.pyplot(fig_h)
+
+        with tab2:
+            sel_player_t2 = st.selectbox("🎯 Focus Player (Actions Maps):", options=player_list, format_func=lambda x: player_options[x], key="sb_t2")
+            p_df_t2 = team_df[team_df['Player'] == sel_player_t2].copy()
+            
+            st.markdown("<h3 style='color: #38bdf8; text-align: center;'>🌍 Map 1: Player Full Performance Map (Attack & Defense Summary)</h3>", unsafe_allow_html=True)
+            pitch_ind_all = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+            fig_ind_all, ax_ind_all = pitch_ind_all.draw(figsize=(12, 9))
+            fig_ind_all.patch.set_facecolor('#0f172a')
+            parse_action_metrics(p_df_t2, ax_ind_all, pitch_ind_all, all_selected_layers, draw_mode=True, specific_type="all")
+            ax_ind_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
+            ax_ind_all.text(60, 40, str(sel_player_t2), fontsize=32, color='#ffffff', alpha=0.07, fontweight='bold', ha='center', va='center', zorder=2)
+            st.pyplot(fig_ind_all)
+            
+            st.markdown("---")
+            st.markdown("<h3 style='color: #2ecc71;'>📐 Map 2: Normal, Through, Key Passes & Shots Matrix</h3>", unsafe_allow_html=True)
+            pitch_m1 = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+            fig_m1, ax_m1 = pitch_m1.draw(figsize=(11, 7))
+            fig_m1.patch.set_facecolor('#0f172a')
+            parse_action_metrics(p_df_t2, ax_m1, pitch_m1, all_selected_layers, draw_mode=True, specific_type="passes")
+            ax_m1.legend(handles=[get_full_legend()[4], get_full_legend()[5], get_full_legend()[6], get_full_legend()[7]], loc='upper right', fontsize='small', facecolor='#0f172a', edgecolor='#334155')
+            ax_m1.text(60, 40, str(sel_player_t2), fontsize=28, color='#ffffff', alpha=0.07, fontweight='bold', ha='center', va='center', zorder=2)
+            st.pyplot(fig_m1)
+            
+            st.markdown("---")
+            st.markdown("<h3 style='color: #38bdf8;'>🏹 Map 3: Crosses & Corners Matrix</h3>", unsafe_allow_html=True)
+            pitch_m2 = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+            fig_m2, ax_m2 = pitch_m2.draw(figsize=(11, 7))
+            fig_m2.patch.set_facecolor('#0f172a')
+            parse_action_metrics(p_df_t2, ax_m2, pitch_m2, all_selected_layers, draw_mode=True, specific_type="crosses")
+            ax_m2.text(60, 40, str(sel_player_t2), fontsize=28, color='#ffffff', alpha=0.07, fontweight='bold', ha='center', va='center', zorder=2)
+            st.pyplot(fig_m2)
+            
+            st.markdown("---")
+            st.markdown("<h3 style='color: #a47e3c;'>🛡️ Map 4: Complete Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
+            pitch_m3 = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+            fig_m3, ax_m3 = pitch_m3.draw(figsize=(11, 7))
+            fig_m3.patch.set_facecolor('#0f172a')
+            parse_action_metrics(p_df_t2, ax_m3, pitch_m3, all_selected_layers, draw_mode=True, specific_type="defense")
+            ax_m3.legend(handles=get_full_legend()[8:], loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
+            ax_m3.text(60, 40, str(sel_player_t2), fontsize=28, color='#ffffff', alpha=0.07, fontweight='bold', ha='center', va='center', zorder=2)
+            st.pyplot(fig_m3)
+
+        with tab3:
+            sel_player_t3 = st.selectbox("🎯 Focus Player (Summary Stats):", options=player_list, format_func=lambda x: player_options[x], key="sb_t3")
+            p_df_t3 = team_df[team_df['Player'] == sel_player_t3].copy()
+            p_stats_t3 = parse_action_metrics(p_df_t3, None, None, all_selected_layers, draw_mode=False)
+            render_premium_player_card(sel_player_t3, selected_team, p_stats_t3)
+            render_player_summary_table(sel_player_t3, p_stats_t3, all_selected_layers)
+    else:
+        st.warning("⚠️ No players found in the uploaded file.")
+
+    with tab4:
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🔥 Team Global Heatmap: EPS</h3>", unsafe_allow_html=True)
+        pitch_th = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+        fig_th, ax_th = pitch_th.draw(figsize=(12, 9))
+        fig_th.patch.set_facecolor('#0f172a')
+        if len(team_df) > 1:
+            draw_premium_kde_heatmap(team_df, ax_th)
+        st.pyplot(fig_th)
+
+    with tab5:
+        st.markdown(f"<h3 style='text-align: center; color: #38bdf8;'>🌍 Map 1: Team Full Tactical Performance Map (Attack & Defense)</h3>", unsafe_allow_html=True)
+        pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+        fig_all, ax_all = pitch_all.draw(figsize=(12, 9))
+        fig_all.patch.set_facecolor('#0f172a')
+        parse_action_metrics(team_df, ax_all, pitch_all, all_selected_layers, draw_mode=True, specific_type="all")
+        ax_all.legend(handles=get_full_legend(), loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
+        st.pyplot(fig_all)
+        
+        st.markdown("---")
+        st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
+        pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#000000', line_color='#ffffff', linestyle='--', positional=True, positional_color='#334155', linewidth=1.2)
+        fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
+        fig_td.patch.set_facecolor('#0f172a')
+        parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defense")
+        ax_td.legend(handles=get_full_legend()[8:], loc='upper left', bbox_to_anchor=(1.01, 1), fontsize='small', framealpha=1, facecolor='#0f172a', edgecolor='#334155')
+        st.pyplot(fig_td)
+else:
+    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
