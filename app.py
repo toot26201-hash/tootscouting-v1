@@ -1,3 +1,4 @@
+from mplsoccer import Pitch
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -592,3 +593,50 @@ if uploaded_file is not None:
         st.pyplot(fig_td)
 else:
     st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
+    # --- إضافة لوحة تحليل اللاعب الجديدة في نهاية الملف دون المساس بشغلك القديم ---
+st.sidebar.write("---")
+if st.sidebar.checkbox("📊 عرض لوحة تحليل اللاعب (3 ملاعب)"):
+    st.write("---")
+    st.title("🎯 لوحة تحليل أداء اللاعب الإحصائية | Player Dashboard")
+    
+    # 1. بيانات وهمية تحاكي الداشبورد الاحترافي
+    passes_df = pd.DataFrame({
+        'x': [30, 45, 55, 65, 75, 80], 'y': [10, 15, 12, 20, 18, 25],
+        'end_x': [50, 60, 70, 85, 92, 95], 'end_y': [12, 18, 15, 30, 22, 45],
+        'type': ['Successful', 'Successful', 'Progressive', 'Progressive', 'Key Pass', 'Key Pass']
+    })
+    defensive_df = pd.DataFrame({
+        'x': [35, 42, 50, 58, 25, 62], 'y': [15, 22, 18, 35, 12, 40],
+        'action': ['Tackle (Succ.)', 'Tackle (Succ.)', 'Ball Recovery', 'Ball Recovery', 'Clearance', 'Pass Blocked']
+    })
+    touches_df = pd.DataFrame({'x': np.random.uniform(30, 85, 30), 'y': np.random.uniform(5, 35, 30)})
+
+    # 2. تقسيم الصفحة أونلاين إلى 3 أعمدة لمشاهدة الملاعب بجانب بعضها
+    col1, col2, col3 = st.columns(3)
+    pitch = Pitch(pitch_type='opta', pitch_color='#f8f9fa', line_color='#333333', orientation='vertical')
+
+    # العمود الأول: الهجوم
+    with col1:
+        st.subheader("⚔️ Offensive Actions")
+        fig1, ax1 = pitch.draw(figsize=(5, 7))
+        for _, row in passes_df.iterrows():
+            color = '#0ea5e9' if row['type'] == 'Progressive' else ('#a855f7' if row['type'] == 'Key Pass' else '#94a3b8')
+            pitch.arrows(row['x'], row['y'], row['end_x'], row['end_y'], color=color, width=2, headwidth=4, ax=ax1)
+        st.pyplot(fig1)
+
+    # العمود الثاني: الدفاع
+    with col2:
+        st.subheader("🛡️ Defensive Actions")
+        fig2, ax2 = pitch.draw(figsize=(5, 7))
+        for _, row in defensive_df.iterrows():
+            marker = 'x' if 'Tackle' in row['action'] else ('o' if 'Recovery' in row['action'] else 's')
+            pitch.scatter(row['x'], row['y'], marker=marker, s=150, color='#0ea5e9', ax=ax2)
+        st.pyplot(fig2)
+
+    # العمود الثالث: اللمسات واستلام الكرة
+    with col3:
+        st.subheader("📍 Touches & Pass Receiving")
+        fig3, ax3 = pitch.draw(figsize=(5, 7))
+        pitch.scatter(touches_df['x'], touches_df['y'], s=40, color='#ef4444', edgecolors='#ffffff', alpha=0.7, ax=ax3)
+        pitch.kdeplot(touches_df['x'], touches_df['y'], ax=ax3, cmap='Blues', fill=True, alpha=0.3, zorder=0)
+        st.pyplot(fig3)
