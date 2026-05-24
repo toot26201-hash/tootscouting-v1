@@ -231,23 +231,4 @@ st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 
 # --- Sidebar Controls ---
 st.sidebar.markdown("## 🛠️ Tactical Control Unit")
-uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
-
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8-sig')
-    except Exception as e:
-        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
-
-    # تنظيف وتوحيد أسماء الأعمدة لحالة الأحرف الصغيرة لمنع حساسيتها
-    df.columns = df.columns.str.strip()
-    
-    # ميكانيكية Mapping مرنة وذكية للأعمدة الأساسية
-    rename_dict = {}
-    for col in df.columns:
-        c_low = col.lower().replace('_', ' ').strip()
-        if 'event type' in c_low or 'eventtype' in c_low or c_low == 'action' or c_low == 'event' or c_low == 'action type':
-            rename_dict[col] = 'Action'
-        elif 'players' in c_low or c_low == 'player' or c_low == 'player name':
-            rename_dict[col] = 'Player'
-        elif 'tag' in c_low or '
+uploaded_file = st.sidebar.file_uploader("📥
