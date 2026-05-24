@@ -279,4 +279,39 @@ if uploaded_file is not None:
         df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
         if x_end_col and y_end_col:
             df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
-            df['y_end_scaled'] = df
+            df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
+        else:
+            df['x_end_scaled'] = df['x_scaled']
+            df['y_end_scaled'] = df['y_scaled']
+
+    team_list = ['EPS']
+    selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
+    team_df = df.copy()
+
+    with st.sidebar.expander("🎯 Passing & Attack Filters", expanded=True):
+        selected_passes = st.multiselect("Pass & Attack Types:", ["Normal Passes", "Crosses", "Through Balls", "Key Passes", "Corners", "Shots", "Goals"], default=["Normal Passes", "Crosses", "Shots", "Goals"])
+        
+    with st.sidebar.expander("🛡️ Defensive Filters", expanded=True):
+        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels", "Counterpress"])
+
+    all_selected_layers = selected_passes + selected_defense
+
+    def get_full_legend():
+        return [
+            mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success', markersize=8),
+            mlines.Line2D([], [], color='#e74c3c', marker='>', linestyle='-', label='Pass Failed', markersize=8),
+            mlines.Line2D([], [], color='#38bdf8', marker='>', linestyle='-', label='Cross Success', markersize=8),
+            mlines.Line2D([], [], color='#ef4444', marker='>', linestyle='--', label='Cross Failed', markersize=8),
+            mlines.Line2D([], [], color='#FF69B4', marker='>', linestyle='-', label='Through Ball', markersize=8),
+            mlines.Line2D([], [], color='#fbbf24', marker='>', linestyle='-', label='Key Pass 🔑', markersize=10, linewidth=3),
+            mlines.Line2D([], [], color='#3b82f6', marker='*', label='Shot On-Target (Blue 🌟)', linestyle='None', markersize=12),
+            mlines.Line2D([], [], color='#ef4444', marker='*', label='Shot Off-Target (Red 🌟)', linestyle='None', markersize=12),
+            mlines.Line2D([], [], color='#60a5fa', marker='x', label='Tackle (Blue X)', linestyle='None', markersize=10, markeredgewidth=2),
+            mlines.Line2D([], [], color='#c084fc', marker='d', label='Clearance', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='#34d399', marker='s', label='Ground Duel Won', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='#f87171', marker='s', label='Ground Duel Lost', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='#34d399', marker='^', label='Aerial Won', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='#f87171', marker='^', label='Aerial Lost', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='#f87171', marker='x', label='Foul (Red X)', linestyle='None', markersize=10, markeredgewidth=2),
+            mlines.Line2D([], [], color='#0f172a', marker='o', label='Counterpress (#)', linestyle='None', markersize=8),
+            mlines.Line2D
