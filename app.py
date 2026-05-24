@@ -304,12 +304,37 @@ st.markdown("""
         border-bottom: 1px solid #334155;
     }
     .player-summary-table tr:hover {
-        background-color: rgba(56, 189, 248, 0.1);
+       ax.legend(
+            handles=...,  # اتركها كما هي في كودك
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white',    # تغيير الخلفية للأبيض
+            edgecolor='black',    # إطار أسود
+ax.legend(
+            handles=...,  # اتركها كما هي في كودك
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white',    # تغيير الخلفية للأبيض
+            edgecolor='black',    # إطار أسود
+            labelcolor='black'    # نصوص سوداء
+        )        )
     }
     .stat-badge {
         background-color: #0f172a;
-        color: #38bdf8;
-        padding: 6px 12px;
+ax.legend(
+            handles=...,  # اتركها كما هي في كودك
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white',    # تغيير الخلفية للأبيض
+            edgecolor='black',    # إطار أسود
+            labelcolor='black'    # نصوص سوداء
+        )        padding: 6px 12px;
         border-radius: 6px;
         font-weight: 700;
         border: 1px solid rgba(56, 189, 248, 0.4);
@@ -319,7 +344,24 @@ st.markdown("""
         border-radius: 6px;
         width: 140px;
         height: 12px;
-        display: inline-block;
+       ax.legend(
+            handles=...,  # اتركها كما هي في كودك
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white',    # تغيير الخلفية للأبيض
+            edgecolor='black',    # إطار أسود
+ax.legend(
+            handles=...,  # اتركها كما هي في كودك
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white',    # تغيير الخلفية للأبيض
+            edgecolor='black',    # إطار أسود
+            labelcolor='black'    # نصوص سوداء
+        )        )
         margin-right: 12px;
         vertical-align: middle;
         overflow: hidden;
