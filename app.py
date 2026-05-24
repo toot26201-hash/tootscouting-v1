@@ -1,4 +1,42 @@
-# --- التعديل في خريطة الفريق (Map 1) ---
+
+# Map 1: Team Analysis
+        pitch_all = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#475569', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_all, ax_all = pitch_all.draw(figsize=(12, 9))
+        fig_all.patch.set_facecolor('#ffffff')
+        parse_action_metrics(team_df, ax_all, pitch_all, all_selected_layers, draw_mode=True, specific_type="all")
+        
+        ax_all.legend(
+            handles=get_full_legend(), 
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white', 
+            edgecolor='black', 
+            labelcolor='black'
+        )
+        st.pyplot(fig_all)
+        
+        st.markdown("---")
+        st.markdown(f"<h3 style='text-align: center; color: #a47e3c;'>🛡️ Map 2: Team Defensive & Combat Matrix</h3>", unsafe_allow_html=True)
+        
+        # Map 2: Team Defensive
+        pitch_td = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#475569', linestyle='--', positional=True, positional_color='#e2e8f0', linewidth=1.2)
+        fig_td, ax_td = pitch_td.draw(figsize=(12, 9))
+        fig_td.patch.set_facecolor('#ffffff')
+        parse_action_metrics(team_df, ax_td, pitch_td, all_selected_layers, draw_mode=True, specific_type="defensive")
+        
+        ax_td.legend(
+            handles=get_full_legend(), 
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white', 
+            edgecolor='black', 
+            labelcolor='black'
+        )
+        st.pyplot(fig_td)# --- التعديل في خريطة الفريق (Map 1) ---
 ax_all.legend(
     handles=get_full_legend(), 
     loc='upper left', 
