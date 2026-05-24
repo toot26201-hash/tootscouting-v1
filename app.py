@@ -95,7 +95,16 @@ ax_td.legend(
     facecolor='#0f172a', 
     edgecolor='#334155',
     labelcolor='white'  # هنا التعديل ليصبح النص أبيض
-)import streamlit as st
+ax_all.legend(
+            handles=get_full_legend(), 
+            loc='upper left', 
+            bbox_to_anchor=(1.01, 1), 
+            fontsize='small', 
+            framealpha=1, 
+            facecolor='white', 
+            edgecolor='black', 
+            labelcolor='black'
+        )
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
