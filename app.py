@@ -241,7 +241,7 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # ميكانيكية Mapping مرنة للأعمدة
+    # ميكانيكية Mapping مرنة للأعمدة الأساسية
     rename_dict = {}
     for col in df.columns:
         c_low = col.lower().replace('_', ' ').strip()
@@ -255,18 +255,4 @@ if uploaded_file is not None:
     if rename_dict:
         df = df.rename(columns=rename_dict)
 
-    if 'Action' not in df.columns or 'Player' not in df.columns:
-        st.sidebar.error("⚠️ لم نتمكن من تحديد أعمدة اللاعبين أو الأحداث تلقائياً.")
-    
-    df['Team'] = 'EPS'
-    df = df.dropna(subset=['Action', 'Player'])
-    df['Tags'] = df['Tags'].fillna('')
-    df['Player'] = df['Player'].astype(str).str.strip()
-
-    # نظام الإحداثيات والـ Scaling
-    col_map_lower = {c.lower().replace('_', ' ').strip(): c for c in df.columns}
-    
-    x_start_col = col_map_lower.get('x start') or col_map_lower.get('x') or col_map_lower.get('xstart')
-    y_start_col = col_map_lower.get('y start') or col_map_lower.get('y') or col_map_lower.get('ystart')
-    x_end_col = col_map_lower.get('x end') or col_map_lower.get('xend')
-    y_end_col = col_map_
+    if 'Action' not in df.columns or 'Player
