@@ -250,32 +250,4 @@ if uploaded_file is not None:
         elif 'players' in c_low or c_low == 'player' or c_low == 'player name':
             rename_dict[col] = 'Player'
         elif 'tag' in c_low or 'tags' in c_low:
-            rename_dict[col] = 'Tags'
-            
-    if rename_dict:
-        df = df.rename(columns=rename_dict)
-
-    if 'Action' not in df.columns or 'Player' not in df.columns:
-        st.sidebar.error("⚠️ لم نتمكن من تحديد أعمدة اللاعبين أو الأحداث تلقائياً.")
-    
-    df['Team'] = 'EPS'
-    df = df.dropna(subset=['Action', 'Player'])
-    df['Tags'] = df['Tags'].fillna('')
-    df['Player'] = df['Player'].astype(str).str.strip()
-
-    # نظام الإحداثيات والـ Scaling
-    col_map_lower = {c.lower().replace('_', ' ').strip(): c for c in df.columns}
-    
-    x_start_col = col_map_lower.get('x start') or col_map_lower.get('x') or col_map_lower.get('xstart')
-    y_start_col = col_map_lower.get('y start') or col_map_lower.get('y') or col_map_lower.get('ystart')
-    x_end_col = col_map_lower.get('x end') or col_map_lower.get('xend')
-    y_end_col = col_map_lower.get('y end') or col_map_lower.get('yend')
-
-    if x_start_col and y_start_col:
-        df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
-        df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
-        
-        if x_end_col and y_end_col:
-            df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
-            df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
-        else
+            rename_dict[col]
