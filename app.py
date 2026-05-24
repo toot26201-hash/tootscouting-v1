@@ -314,4 +314,175 @@ if uploaded_file is not None:
             mlines.Line2D([], [], color='#f87171', marker='^', label='Aerial Lost', linestyle='None', markersize=10),
             mlines.Line2D([], [], color='#f87171', marker='x', label='Foul (Red X)', linestyle='None', markersize=10, markeredgewidth=2),
             mlines.Line2D([], [], color='#0f172a', marker='o', label='Counterpress (#)', linestyle='None', markersize=8),
-            mlines.Line2D
+            mlines.Line2D([], [], color='#fbbf24', marker='*', label='Goal Confirmed ⚽', linestyle='None', markersize=15)
+        ]
+
+    def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True, specific_type=None):
+        matrix = {
+            "total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0,
+            "through_balls": 0, "key_passes": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0,
+            "aerial_duels_won": 0, "fouls": 0, "counterpress": 0, "goals": 0, "shots_on_target": 0, "shots_off_target": 0
+        }
+        for i, row in dataframe.iterrows():
+            if 'x_scaled' not in dataframe.columns or 'y_scaled' not in dataframe.columns:
+                continue
+            act = str(row['Action']).lower()
+            tag = str(row['Tags']).lower()
+            is_success = 'success' in tag or 'won' in tag or 'win' in tag or 'recovery' in tag or 'pass' in tag
+            if 'failed' in tag or 'failure' in tag: is_success = False
+            
+            if 'goal' in act or 'goal' in tag:
+                matrix["goals"] += 1
+                if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all") and "Goals" in layers:
+                    pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=750, color='#fbbf24', edgecolors='black', ax=ax, zorder=6)
+
+            if 'shot' in act or 'sh/a' in act:
+                if is_success:
+                    matrix["shots_on_target"] += 1
+                    if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all") and "Shots" in layers:
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=450, color='#3b82f6', edgecolors='black', ax=ax, zorder=5)
+                else:
+                    matrix["shots_off_target"] += 1
+                    if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all") and "Shots" in layers:
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='*', s=450, color='#ef4444', edgecolors='black', ax=ax, zorder=5)
+
+            if 'pass' in act:
+                action_captured = False
+                if 'key' in tag or 'key pass' in tag:
+                    matrix["key_passes"] += 1
+                    if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all") and "Key Passes" in layers:
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=3, color='#fbbf24', ax=ax, zorder=4)
+                    action_captured = True
+                elif 'through' in tag and "Through Balls" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all"):
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#FF69B4', ax=ax, zorder=4)
+                    matrix["through_balls"] += 1
+                    action_captured = True
+                elif "Normal Passes" in layers and not any(k in tag for k in ['cross', 'through', 'corner']):
+                    if draw_mode and (specific_type is None or specific_type == "passes" or specific_type == "all"):
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#2ecc71' if is_success else '#e74c3c', ax=ax, alpha=0.6, zorder=3)
+                    action_captured = True
+                elif 'corner' in tag and "Corners" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#fbbf24' if is_success else '#ef4444', ax=ax, zorder=4)
+                    action_captured = True
+                elif 'cross' in tag and "Crosses" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "crosses" or specific_type == "all"):
+                        pitch_obj.arrows(row.x_scaled, row.y_scaled, row.x_end_scaled, row.y_end_scaled, width=2, color='#38bdf8' if is_success else '#ef4444', linestyle='solid' if is_success else 'dashed', ax=ax, zorder=4)
+                    matrix["crosses"] += 1
+                    if is_success: matrix["success_crosses"] += 1
+                    action_captured = True
+                if action_captured:
+                    matrix["total_passes"] += 1
+                    if is_success: matrix["success_passes"] += 1
+
+            elif 'extraction' in act:
+                if 'clearance' in tag:
+                    if "Clearances" in layers:
+                        if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
+                            pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='d', s=200, color='#c084fc', ax=ax, zorder=5)
+                    matrix["clearances"] += 1
+                else:
+                    if "Tackles" in layers:
+                        if draw_mode loops and (specific_type is None or specific_type == "defense" or specific_type == "all"):
+                            pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='#60a5fa', linewidth=3, ax=ax, zorder=5)
+                    matrix["tackles"] += 1
+
+            elif 'aerial' in act:
+                if "Aerial Duels" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='^', s=220, color='#34d399' if is_success else '#f87171', edgecolors='black', ax=ax, zorder=5)
+                if is_success: matrix["aerial_duels_won"] += 1
+
+            elif 'ground' in act:
+                if "Ground Duels" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='s', s=200, color='#34d399' if is_success else '#f87171', edgecolors='black', ax=ax, zorder=5)
+                if is_success: matrix["ground_duels_won"] += 1
+
+            elif 'foul' in act or 'fouls' in act:
+                if "Fouls" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
+                        pitch_obj.scatter(row.x_scaled, row.y_scaled, marker='x', s=240, color='#ef4444', linewidth=3, ax=ax, zorder=5)
+                matrix["fouls"] += 1
+
+            elif 'press' in act or 'recovery' in tag:
+                if "Counterpress" in layers:
+                    if draw_mode and (specific_type is None or specific_type == "defense" or specific_type == "all"):
+                        ax.text(row.x_scaled, row.y_scaled, '#', color='#0f172a', fontsize=22, fontweight='bold', ha='center', va='center', zorder=5)
+                matrix["counterpress"] += 1
+        return matrix
+
+    def draw_premium_kde_heatmap(dataframe, ax):
+        scout_lab_colors = ["#ffffff", "#e0f2fe", "#7dd3fc", "#0ea5e9", "#fbbf24", "#ef4444"]
+        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab_light", scout_lab_colors, N=256)
+        sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.05, alpha=0.7, bw_method=0.28, zorder=1, ax=ax)
+
+    def render_premium_player_card(player_name, selected_team, stats):
+        p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
+        total_def = stats['tackles'] + stats['clearances'] + stats['ground_duels_won'] + stats['aerial_duels_won']
+        total_shots = stats['shots_on_target'] + stats['shots_off_target']
+        calculated_rating = int(60 + (p_pct * 0.25) + (total_def * 0.5) + (stats['shots_on_target'] * 0.8) + (stats['key_passes'] * 1.2))
+        if calculated_rating > 99: calculated_rating = 99
+        logo_b64 = get_base64_logo()
+        avatar_html = f'<img src="data:image/png;base64,{logo_b64}" class="premium-player-logo-img" />' if logo_b64 else '<span class="premium-player-avatar">🏃‍♂️</span>'
+        st.markdown(f"""
+            <div class="premium-player-card">
+                <div class="premium-card-left">
+                    <div class="premium-player-img-wrapper">{avatar_html}</div>
+                    <div class="premium-player-meta">
+                        <h2>{player_name}</h2>
+                        <p>Club: {selected_team} | Tactical Scouting Profile</p>
+                    </div>
+                </div>
+                <div class="premium-card-right">
+                    <div class="premium-stat-tile premium-stat-tile-large">
+                        <div class="premium-tile-val">{calculated_rating}</div>
+                        <div class="premium-tile-lbl">Rating</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{stats['total_passes']}</div>
+                        <div class="premium-tile-lbl">Passes</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{stats['key_passes']}</div>
+                        <div class="premium-tile-lbl">Key Passes 🔑</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{total_shots}</div>
+                        <div class="premium-tile-lbl">Shots Total</div>
+                    </div>
+                    <div class="premium-stat-tile">
+                        <div class="premium-tile-val">{stats['goals']}</div>
+                        <div class="premium-tile-lbl">Goals</div>
+                    </div>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+
+    def render_player_summary_table(player_name, stats, active_layers):
+        p_pct = (stats['success_passes']/stats['total_passes'])*100 if stats['total_passes'] > 0 else 0
+        current_pct = (stats['success_crosses']/stats['crosses'])*100 if stats['crosses'] > 0 else 0
+        def get_live_bar_html(val, max_val=15):
+            pct = (val / max_val) * 100 if val > 0 else 0
+            if pct > 100: pct = 100
+            return f'<div class="progress-bar-bg"><div class="progress-bar-fill" style="width: {pct}%;"></div></div>'
+        st.markdown(f"""
+            <div class="summary-table-container">
+                <div class="summary-title">📊 Live Interactive Summary Table (All-Bars Dashboard)</div>
+                <table class="player-summary-table">
+                    <thead><tr><th>Metric Category</th><th>Attempts Count</th><th>Visual Live Progress Bar</th></tr></thead>
+                    <tbody>
+                        <tr><td><b>Total Passing</b></td><td>{stats['total_passes'] if "Normal Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['total_passes'] if "Normal Passes" in active_layers else 0, 40)} <span class="stat-badge">{p_pct:.1f}% Acc</span></td></tr>
+                        <tr><td><b>Crosses Matrix</b></td><td>{stats['crosses'] if "Crosses" in active_layers else 0}</td><td>{get_live_bar_html(stats['crosses'] if "Crosses" in active_layers else 0, 15)} <span class="stat-badge">{current_pct:.1f}% Acc</span></td></tr>
+                        <tr><td><b>Through Balls</b></td><td>{stats['through_balls'] if "Through Balls" in active_layers else 0}</td><td>{get_live_bar_html(stats['through_balls'] if "Through Balls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b style="color: #fbbf24;">🔑 Key Passes</b></td><td>{stats['key_passes'] if "Key Passes" in active_layers else 0}</td><td>{get_live_bar_html(stats['key_passes'] if "Key Passes" in active_layers else 0, 10)} <span class="stat-badge" style="background-color: #fef08a; color: #854d0e;">Chances</span></td></tr>
+                        <tr><td><b style="color: #3b82f6;">🌟 Shots On-Target</b></td><td>{stats['shots_on_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_on_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #93c5fd; color: #1e3a8a;">🎯 On Goal</span></td></tr>
+                        <tr><td><b style="color: #ef4444;">🌟 Shots Off-Target</b></td><td>{stats['shots_off_target'] if "Shots" in active_layers else 0}</td><td>{get_live_bar_html(stats['shots_off_target'] if "Shots" in active_layers else 0, 8)} <span class="stat-badge" style="background-color: #fca5a5; color: #7f1d1d;">Missed</span></td></tr>
+                        <tr><td><b>Defensive Tackles</b></td><td>{stats['tackles'] if "Tackles" in active_layers else 0}</td><td>{get_live_bar_html(stats['tackles'] if "Tackles" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Clearances</b></td><td>{stats['clearances'] if "Clearances" in active_layers else 0}</td><td>{get_live_bar_html(stats['clearances'] if "Clearances" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Ground Duels Won</b></td><td>{stats['ground_duels_won'] if "Ground Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['ground_duels_won'] if "Ground Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
+                        <tr><td><b>Aerial Duels Won</b></td><td>{stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0}</td><td>{get_live_bar_html(stats['aerial_duels_won'] if "Aerial Duels" in active_layers else 0)} <span class="stat-badge">Won</span></td></tr>
+                        <tr><td><b>Fouls Operations</b></td><td>{stats['fouls'] if "Fouls" in active_layers else 0}</td><td>{get_live_bar_html(stats['fouls'] if "Fouls" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td><b>Counterpress Actions (#)</b></td><td>{stats['counterpress'] if "Counterpress" in active_layers else 0}</td><td>{get_live_bar_html(stats['counterpress'] if "Counterpress" in active_layers else 0)} <span class="stat-badge">Live</span></td></tr>
+                        <tr><td style="color: gold; font-weight: bold;">Goals Scored</td><td>{stats['goals'] if "Goals" in active_layers else 0}</td><td>{
