@@ -1,4 +1,79 @@
+
 import streamlit as st
+import pandas as pd
+import matplotlib.pyplot as plt
+from mplsoccer import Pitch
+import matplotlib.lines as mlines
+import seaborn as sns
+from PIL import Image
+import os
+import matplotlib.colors as mcolors
+import numpy as np
+import base64
+
+# Function to read and encode the club logo to Base64
+def get_base64_logo():
+    current_dir = os.path.dirname(__file__)
+    possible_paths = [
+        os.path.join(current_dir, 'Espoon_Palloseura_logo.png'),
+        os.path.join(current_dir, 'espoon_palloseura_logo.png'),
+        'Espoon_Palloseura_logo.png',
+        'espoon_palloseura_logo.png'
+    ]
+    logo_filename = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            logo_filename = path
+            break
+    if logo_filename and os.path.exists(logo_filename):
+        with open(logo_filename, "rb") as image_file:
+            return base64.b64encode(image_file.read()).decode()
+    return None
+
+# Page Config & Strict Dark Premium Theme (TootScouting Global Style)
+st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
+
+st.markdown("""
+    <style>
+    /* Global Background and Text Color */
+    .stApp {
+        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
+        color: #f8fafc !important;
+    }
+    h1, h2, h3, h4, h5, h6, p, div, span {
+        color: #f8fafc !important;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# --- بقية الدوال الخاصة بك (تأكد من وجودها بنفس الترتيب في ملفك) ---
+# ... get_full_legend(), parse_action_metrics() ...
+
+# --- عند رسم الخرائط، استخدم هذا التنسيق المحدث للـ Legend ---
+
+# خريطة 1:
+ax_all.legend(
+    handles=get_full_legend(), 
+    loc='upper left', 
+    bbox_to_anchor=(1.01, 1), 
+    fontsize='small', 
+    framealpha=1, 
+    facecolor='#0f172a', 
+    edgecolor='#334155',
+    labelcolor='white'  # هنا التعديل ليصبح النص أبيض
+)
+
+# خريطة 2:
+ax_td.legend(
+    handles=get_full_legend(), 
+    loc='upper left', 
+    bbox_to_anchor=(1.01, 1), 
+    fontsize='small', 
+    framealpha=1, 
+    facecolor='#0f172a', 
+    edgecolor='#334155',
+    labelcolor='white'  # هنا التعديل ليصبح النص أبيض
+)import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
