@@ -168,4 +168,80 @@ st.markdown("""
         border-radius: 12px;
         box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
         margin-bottom: 25px;
-        border: 1px solid rgba(56,
+        border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .summary-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #38bdf8;
+        padding-bottom: 8px;
+    }
+    .player-summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+    .player-summary-table th {
+        background-color: #0f172a;
+        color: #94a3b8;
+        font-weight: 600;
+        padding: 14px;
+        font-size: 0.9rem;
+        border-bottom: 2px solid #334155;
+    }
+    .player-summary-table td {
+        padding: 14px;
+        font-size: 0.95rem;
+        color: #e2e8f0;
+        border-bottom: 1px solid #334155;
+    }
+    .player-summary-table tr:hover {
+        background-color: rgba(56, 189, 248, 0.1);
+    }
+    .stat-badge {
+        background-color: #0f172a;
+        color: #38bdf8;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .progress-bar-bg {
+        background-color: #0f172a;
+        border-radius: 6px;
+        width: 140px;
+        height: 12px;
+        display: inline-block;
+        margin-right: 12px;
+        vertical-align: middle;
+        overflow: hidden;
+        border: 1px solid #334155;
+    }
+    .progress-bar-fill {
+        background: linear-gradient(90deg, #a47e3c 0%, #38bdf8 100%);
+        height: 100%;
+        border-radius: 6px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
+
+# --- Sidebar Controls ---
+st.sidebar.markdown("## 🛠️ Tactical Control Unit")
+uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
+
+if uploaded_file is not None:
+    try:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8-sig')
+    except Exception as e:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
+
+    df.columns = df.columns.str.strip()
+    
+    # Selective Auto-Mapping Mechanics
+    rename_dict = {}
+    for col in df.columns:
+        c_low = col.lower().strip()
