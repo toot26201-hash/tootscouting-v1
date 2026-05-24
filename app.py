@@ -261,31 +261,3 @@ if uploaded_file is not None:
             
     if rename_dict:
         df = df.rename(columns=rename_dict)
-
-    df['Team'] = 'EPS'
-    df = df.dropna(subset=['Action', 'Player'])
-    df['Tags'] = df['Tags'].fillna('')
-    df['Player'] = df['Player'].astype(str).str.strip()
-
-    # Coordinate Scaling System (120x80 Dimensions)
-    col_map_lower = {c.lower().strip(): c for c in df.columns}
-    x_start_col = col_map_lower.get('x start') or col_map_lower.get('x')
-    y_start_col = col_map_lower.get('y start') or col_map_lower.get('y')
-    x_end_col = col_map_lower.get('x end')
-    y_end_col = col_map_lower.get('y end')
-
-    if x_start_col and y_start_col:
-        df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
-        df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
-        if x_end_col and y_end_col:
-            df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
-            df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
-        else:
-            df['x_end_scaled'] = df['x_scaled']
-            df['y_end_scaled'] = df['y_scaled']
-
-    team_list = ['EPS']
-    selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
-    team_df = df.copy()
-
-    with st.sidebar.expander("🎯 Passing & Attack Filters",
