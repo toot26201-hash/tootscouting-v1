@@ -269,43 +269,4 @@ if uploaded_file is not None:
     x_start_col = col_map_lower.get('x start') or col_map_lower.get('x') or col_map_lower.get('xstart')
     y_start_col = col_map_lower.get('y start') or col_map_lower.get('y') or col_map_lower.get('ystart')
     x_end_col = col_map_lower.get('x end') or col_map_lower.get('xend')
-    y_end_col = col_map_lower.get('y end') or col_map_lower.get('yend')
-
-    if x_start_col and y_start_col:
-        df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
-        df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
-        
-        if x_end_col and y_end_col:
-            df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
-            df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
-        else:
-            df['x_end_scaled'] = df['x_scaled']
-            df['y_end_scaled'] = df['y_scaled']
-    else:
-        st.sidebar.error("⚠️ لم نجد أعمدة الإحداثيات (X, Y) في الملف المرفوع!")
-
-    team_list = ['EPS']
-    selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
-    team_df = df.copy()
-
-    with st.sidebar.expander("🎯 Passing & Attack Filters", expanded=True):
-        selected_passes = st.multiselect("Pass & Attack Types:", ["Normal Passes", "Crosses", "Through Balls", "Key Passes", "Corners", "Shots", "Goals"], default=["Normal Passes", "Crosses", "Shots", "Goals"])
-        
-    with st.sidebar.expander("🛡️ Defensive Filters", expanded=True):
-        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels", "Counterpress"])
-
-    all_selected_layers = selected_passes + selected_defense
-
-    def get_full_legend():
-        return [
-            mlines.Line2D([], [], color='#00FF66', marker='>', linestyle='-', label='Pass Success', markersize=8),
-            mlines.Line2D([], [], color='#FF3333', marker='>', linestyle='-', label='Pass Failed', markersize=8),
-            mlines.Line2D([], [], color='#00CCFF', marker='>', linestyle='-', label='Cross Success', markersize=8),
-            mlines.Line2D([], [], color='#FF6666', marker='>', linestyle='--', label='Cross Failed', markersize=8),
-            mlines.Line2D([], [], color='#FF00FF', marker='>', linestyle='-', label='Through Ball', markersize=8),
-            mlines.Line2D([], [], color='#FFCC00', marker='>', linestyle='-', label='Key Pass 🔑', markersize=10, linewidth=3),
-            mlines.Line2D([], [], color='#3b82f6', marker='*', label='Shot On-Target (Blue 🌟)', linestyle='None', markersize=12),
-            mlines.Line2D([], [], color='#ef4444', marker='*', label='Shot Off-Target (Red 🌟)', linestyle='None', markersize=12),
-            mlines.Line2D([], [], color='#00CCFF', marker='x', label='Tackle (Light Blue X)', linestyle='None', markersize=10, markeredgewidth=2),
-            mlines.Line2D([], [], color='#CC99FF', marker='d', label='Clearance', linestyle='None', markersize=10),
-            mlines.Line2D([], [], color='#34d399', marker='s', label='Ground Duel Won
+    y_end_col = col_map_
