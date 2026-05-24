@@ -1,4 +1,26 @@
+# --- التعديل في خريطة الفريق (Map 1) ---
+ax_all.legend(
+    handles=get_full_legend(), 
+    loc='upper left', 
+    bbox_to_anchor=(1.01, 1), 
+    fontsize='small', 
+    framealpha=1,          # خلفية غير شفافة
+    facecolor='white',     # خلفية بيضاء
+    edgecolor='black',     # إطار أسود
+    labelcolor='black'     # نص أسود
+)
 
+# --- التعديل في خريطة الدفاع (Map 2) ---
+ax_td.legend(
+    handles=get_full_legend(), 
+    loc='upper left', 
+    bbox_to_anchor=(1.01, 1), 
+    fontsize='small', 
+    framealpha=1,          # خلفية غير شفافة
+    facecolor='white',     # خلفية بيضاء
+    edgecolor='black',     # إطار أسود
+    labelcolor='black'     # نص أسود
+)
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
