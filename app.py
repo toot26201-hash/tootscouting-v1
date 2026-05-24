@@ -166,22 +166,4 @@ st.markdown("""
         background: #1e293b;
         padding: 24px;
         border-radius: 12px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
-        margin-bottom: 25px;
-        border: 1px solid rgba(56, 189, 248, 0.3);
-    }
-    .summary-title {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #f8fafc;
-        margin-bottom: 16px;
-        border-bottom: 2px solid #38bdf8;
-        padding-bottom: 8px;
-    }
-    .player-summary-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-    }
-    .player-summary-table th {
-        background-
+        box-shadow:
