@@ -166,4 +166,126 @@ st.markdown("""
         background: #1e293b;
         padding: 24px;
         border-radius: 12px;
-        box-shadow:
+        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
+        margin-bottom: 25px;
+        border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+    .summary-title {
+        font-size: 1.3rem;
+        font-weight: 700;
+        color: #f8fafc;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #38bdf8;
+        padding-bottom: 8px;
+    }
+    .player-summary-table {
+        width: 100%;
+        border-collapse: collapse;
+        text-align: left;
+    }
+    .player-summary-table th {
+        background-color: #0f172a;
+        color: #94a3b8;
+        font-weight: 600;
+        padding: 14px;
+        font-size: 0.9rem;
+        border-bottom: 2px solid #334155;
+    }
+    .player-summary-table td {
+        padding: 14px;
+        font-size: 0.95rem;
+        color: #e2e8f0;
+        border-bottom: 1px solid #334155;
+    }
+    .player-summary-table tr:hover {
+        background-color: rgba(56, 189, 248, 0.1);
+    }
+    .stat-badge {
+        background-color: #0f172a;
+        color: #38bdf8;
+        padding: 6px 12px;
+        border-radius: 6px;
+        font-weight: 700;
+        border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+    .progress-bar-bg {
+        background-color: #0f172a;
+        border-radius: 6px;
+        width: 140px;
+        height: 12px;
+        display: inline-block;
+        margin-right: 12px;
+        vertical-align: middle;
+        overflow: hidden;
+        border: 1px solid #334155;
+    }
+    .progress-bar-fill {
+        background: linear-gradient(90deg, #a47e3c 0%, #38bdf8 100%);
+        height: 100%;
+        border-radius: 6px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
+
+# --- Sidebar Controls ---
+st.sidebar.markdown("## 🛠️ Tactical Control Unit")
+uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
+
+if uploaded_file is not None:
+    try:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8-sig')
+    except Exception as e:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
+
+    df.columns = df.columns.str.strip()
+    
+    # Selective Auto-Mapping Mechanics
+    rename_dict = {}
+    for col in df.columns:
+        c_low = col.lower().strip()
+        if 'event type' in c_low or 'event_type' in c_low or c_low == 'action' or c_low == 'event':
+            rename_dict[col] = 'Action'
+            break
+    for col in df.columns:
+        c_low = col.lower().strip()
+        if 'players' in c_low or 'player' in c_low:
+            rename_dict[col] = 'Player'
+            break
+    for col in df.columns:
+        c_low = col.lower().strip()
+        if 'tag' in c_low or 'tags' in c_low:
+            rename_dict[col] = 'Tags'
+            break
+            
+    if rename_dict:
+        df = df.rename(columns=rename_dict)
+
+    df['Team'] = 'EPS'
+    df = df.dropna(subset=['Action', 'Player'])
+    df['Tags'] = df['Tags'].fillna('')
+    df['Player'] = df['Player'].astype(str).str.strip()
+
+    # Coordinate Scaling System (120x80 Dimensions)
+    col_map_lower = {c.lower().strip(): c for c in df.columns}
+    x_start_col = col_map_lower.get('x start') or col_map_lower.get('x')
+    y_start_col = col_map_lower.get('y start') or col_map_lower.get('y')
+    x_end_col = col_map_lower.get('x end')
+    y_end_col = col_map_lower.get('y end')
+
+    if x_start_col and y_start_col:
+        df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
+        df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
+        if x_end_col and y_end_col:
+            df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
+            df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
+        else:
+            df['x_end_scaled'] = df['x_scaled']
+            df['y_end_scaled'] = df['y_scaled']
+
+    team_list = ['EPS']
+    selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
+    team_df = df.copy()
+
+    with st.sidebar.expander("🎯 Passing & Attack Filters",
