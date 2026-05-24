@@ -291,4 +291,21 @@ if uploaded_file is not None:
     with st.sidebar.expander("🎯 Passing & Attack Filters", expanded=True):
         selected_passes = st.multiselect("Pass & Attack Types:", ["Normal Passes", "Crosses", "Through Balls", "Key Passes", "Corners", "Shots", "Goals"], default=["Normal Passes", "Crosses", "Shots", "Goals"])
         
-    with st.sidebar.expander("🛡️ Defensive Filters", expanded
+    with st.sidebar.expander("🛡️ Defensive Filters", expanded=True):
+        selected_defense = st.multiselect("Actions:", ["Tackles", "Clearances", "Ground Duels", "Aerial Duels", "Fouls", "Counterpress"], default=["Tackles", "Ground Duels", "Clearances", "Aerial Duels", "Counterpress"])
+
+    all_selected_layers = selected_passes + selected_defense
+
+    def get_full_legend():
+        return [
+            mlines.Line2D([], [], color='#00FF66', marker='>', linestyle='-', label='Pass Success', markersize=8),
+            mlines.Line2D([], [], color='#FF3333', marker='>', linestyle='-', label='Pass Failed', markersize=8),
+            mlines.Line2D([], [], color='#00CCFF', marker='>', linestyle='-', label='Cross Success', markersize=8),
+            mlines.Line2D([], [], color='#FF6666', marker='>', linestyle='--', label='Cross Failed', markersize=8),
+            mlines.Line2D([], [], color='#FF00FF', marker='>', linestyle='-', label='Through Ball', markersize=8),
+            mlines.Line2D([], [], color='#FFCC00', marker='>', linestyle='-', label='Key Pass 🔑', markersize=10, linewidth=3),
+            mlines.Line2D([], [], color='#3b82f6', marker='*', label='Shot On-Target (Blue 🌟)', linestyle='None', markersize=12),
+            mlines.Line2D([], [], color='#ef4444', marker='*', label='Shot Off-Target (Red 🌟)', linestyle='None', markersize=12),
+            mlines.Line2D([], [], color='#00CCFF', marker='x', label='Tackle (Light Blue X)', linestyle='None', markersize=10, markeredgewidth=2),
+            mlines.Line2D([], [], color='#CC99FF', marker='d', label='Clearance', linestyle='None', markersize=10),
+            mlines.Line2D([], [], color='#34d399', marker='s', label='Ground Duel Won
