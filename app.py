@@ -1,247 +1,117 @@
 import streamlit as st
 import pandas as pd
+import numpy as np
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
-import matplotlib.lines as mlines
-import seaborn as sns
-from PIL import Image
-import os
-import matplotlib.colors as mcolors
-import numpy as np
-import base64
+import io
 
-# Function to read and encode the club logo to Base64
-def get_base64_logo():
-    current_dir = os.path.dirname(__file__)
-    possible_paths = [
-        os.path.join(current_dir, 'Espoon_Palloseura_logo.png'),
-        os.path.join(current_dir, 'espoon_palloseura_logo.png'),
-        'Espoon_Palloseura_logo.png',
-        'espoon_palloseura_logo.png'
-    ]
-    logo_filename = None
-    for path in possible_paths:
-        if os.path.exists(path):
-            logo_filename = path
-            break
-    if logo_filename and os.path.exists(logo_filename):
-        with open(logo_filename, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode()
-    return None
+# 1. إعدادات الصفحة الأساسية للتطبيق
+st.set_page_config(
+    page_title="TootScouting", 
+    layout="wide"
+)
 
-# Page Config & Strict Dark Premium Theme (TootScouting Global Style)
-st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
+# 2. القائمة الجانبية للتنقل (Sidebar)
+st.sidebar.title("TootScouting 📊")
 
-st.markdown("""
-    <style>
-    /* Global Background and Text Color */
-    .stApp {
-        background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important;
-        color: #f8fafc !important;
-    }
-    [data-testid="stSidebar"] {
-        background-color: #0f172a !important;
-        border-right: 1px solid #334155;
-    }
-    h1, h2, h3, p, span, label, .stMarkdown {
-        color: #f8fafc !important;
-    }
-    .stTabs [data-baseweb="tab-list"] {
-        gap: 12px;
-        background-color: #0f172a;
-        padding: 8px;
-        border-radius: 8px;
-    }
-    .stTabs [data-baseweb="tab"] {
-        background-color: #1e293b;
-        border: 1px solid #334155;
-        border-radius: 6px;
-        padding: 10px 20px;
-        font-weight: 600;
-        color: #94a3b8 !important;
-    }
-    .stTabs [aria-selected="true"] {
-        background-color: #a47e3c !important; 
-        color: #ffffff !important;
-        border-color: #a47e3c !important;
-    }
+# خيارات التنقل بين واجهتك المعتادة واللوحة الجديدة
+choice = st.sidebar.radio("القائمة الرئيسية:", ["الرئيسية وتحليل الأداء", "📊 لوحة تحليل لاعب (3 ملاعب)"])
 
-    /* CYBER GLOW GLOWING PLAYER CARD DESIGN */
-    .premium-player-card {
-        background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 50%, #020617 100%);
-        border: 2px solid #38bdf8;
-        border-radius: 20px;
-        padding: 26px;
-        box-shadow: 0 0 30px rgba(56, 189, 248, 0.7), inset 0 0 20px rgba(56, 189, 248, 0.2);
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        margin-bottom: 25px;
-        position: relative;
-        overflow: hidden;
-        animation: cardGlowPulse 4s infinite alternate;
-    }
-    @keyframes cardGlowPulse {
-        0% { box-shadow: 0 0 20px rgba(56, 189, 248, 0.5); }
-        100% { box-shadow: 0 0 35px rgba(56, 189, 248, 0.9); }
-    }
-    .premium-card-left {
-        display: flex;
-        align-items: center;
-        gap: 20px;
-        z-index: 2;
-    }
-    .premium-player-img-wrapper {
-        position: relative;
-        width: 115px;
-        height: 115px;
-        border-radius: 50%;
-        border: 3px solid #fbbf24;
-        background-color: #ffffff !important; 
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 0 20px rgba(251, 191, 36, 0.8);
-        overflow: hidden;
-    }
-    .premium-player-logo-img {
-        width: 100%;
-        height: 100%;
-        object-fit: contain;
-        padding: 6px;
-    }
-    .premium-player-meta h2 {
-        margin: 0;
-        font-size: 2.2rem !important;
-        font-weight: 800;
-        color: #ffffff;
-        text-shadow: 0 0 10px rgba(255,255,255,0.4);
-    }
-    .premium-player-meta p {
-        margin: 4px 0 0 0;
-        font-size: 1rem;
-        color: #38bdf8;
-        font-weight: 600;
-    }
-    .premium-card-right {
-        display: flex;
-        gap: 15px;
-        z-index: 2;
-    }
-    .premium-stat-tile {
-        background: rgba(15, 23, 42, 0.85);
-        border: 1px solid rgba(56, 189, 248, 0.4);
-        border-radius: 14px;
-        padding: 16px;
-        min-width: 105px;
-        text-align: center;
-        box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
-    }
-    .premium-stat-tile-large {
-        background: linear-gradient(135deg, #0284c7 0%, #1e3a8a 100%);
-        border: 2px solid #38bdf8;
-        box-shadow: 0 0 20px rgba(56, 189, 248, 0.8);
-    }
-    .premium-tile-val {
-        font-size: 2rem;
-        font-weight: 900;
-        color: #ffffff;
-        line-height: 1;
-        text-shadow: 0 0 8px rgba(255,255,255,0.6);
-    }
-    .premium-tile-lbl {
-        font-size: 0.75rem;
-        color: #94a3b8;
-        font-weight: 700;
-        text-transform: uppercase;
-        margin-top: 6px;
-        letter-spacing: 0.5px;
-    }
-    .premium-stat-tile-large .premium-tile-lbl {
-        color: #f1f5f9;
-    }
+# =========================================================================
+# القسم الأول: لوحة الملاعب الثلاثة الاحترافية (عند اختيارها من السايدبار)
+# =========================================================================
+if choice == "📊 لوحة تحليل لاعب (3 ملاعب)":
+    st.title("🎯 لوحة تحليل أداء اللاعب الإحصائية | Player Dashboard")
+    st.markdown("تحليل بصري متكامل للأدوار الهجومية، الدفاعية، ومناطق استلام الكرة.")
+    st.write("---")
 
-    /* Progress Table Container */
-    .summary-table-container {
-        background: #1e293b;
-        padding: 24px;
-        border-radius: 12px;
-        box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.6);
-        margin-bottom: 25px;
-        border: 1px solid rgba(56, 189, 248, 0.3);
-    }
-    .summary-title {
-        font-size: 1.3rem;
-        font-weight: 700;
-        color: #f8fafc;
-        margin-bottom: 16px;
-        border-bottom: 2px solid #38bdf8;
-        padding-bottom: 8px;
-    }
-    .player-summary-table {
-        width: 100%;
-        border-collapse: collapse;
-        text-align: left;
-    }
-    .player-summary-table th {
-        background-color: #0f172a;
-        color: #94a3b8;
-        font-weight: 600;
-        padding: 14px;
-        font-size: 0.9rem;
-        border-bottom: 2px solid #334155;
-    }
-    .player-summary-table td {
-        padding: 14px;
-        font-size: 0.95rem;
-        color: #e2e8f0;
-        border-bottom: 1px solid #334155;
-    }
-    .player-summary-table tr:hover {
-        background-color: rgba(56, 189, 248, 0.1);
-    }
-    .stat-badge {
-        background-color: #0f172a;
-        color: #38bdf8;
-        padding: 6px 12px;
-        border-radius: 6px;
-        font-weight: 700;
-        border: 1px solid rgba(56, 189, 248, 0.4);
-    }
-    .progress-bar-bg {
-        background-color: #0f172a;
-        border-radius: 6px;
-        width: 140px;
-        height: 12px;
-        display: inline-block;
-        margin-right: 12px;
-        vertical-align: middle;
-        overflow: hidden;
-        border: 1px solid #334155;
-    }
-    .progress-bar-fill {
-        background: linear-gradient(90deg, #a47e3c 0%, #38bdf8 100%);
-        height: 100%;
-        border-radius: 6px;
-    }
-    </style>
-""", unsafe_allow_html=True)
-
-st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
-
-# --- Sidebar Controls ---
-st.sidebar.markdown("## 🛠️ Tactical Control Unit")
-uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
-
-if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8-sig')
-    except Exception as e:
-        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
-
-    df.columns = df.columns.str.strip()
+    # أ. بيانات وهمية تحاكي تفاصيل أداء اللاعب (مثل Nuno Mendes)
+    passes_df = pd.DataFrame({
+        'x': [30, 45, 55, 65, 75, 80], 'y': [10, 15, 12, 20, 18, 25],
+        'end_x': [50, 60, 70, 85, 92, 95], 'end_y': [12, 18, 15, 30, 22, 45],
+        'type': ['Successful', 'Successful', 'Progressive', 'Progressive', 'Key Pass', 'Key Pass']
+    })
     
-    # Selective Auto-Mapping Mechanics
-    rename_dict = {}
-    for col in df.columns:
-        c_low = col.lower().strip()
+    defensive_df = pd.DataFrame({
+        'x': [35, 42, 50, 58, 25, 62], 'y': [15, 22, 18, 35, 12, 40],
+        'action': ['Tackle (Succ.)', 'Tackle (Succ.)', 'Ball Recovery', 'Ball Recovery', 'Clearance', 'Pass Blocked']
+    })
+    
+    # توليد نقاط عشوائية للمسات اللاعب
+    np.random.seed(42)
+    touches_df = pd.DataFrame({
+        'x': np.random.uniform(30, 85, 35),
+        'y': np.random.uniform(5, 35, 35)
+    })
+
+    # ب. تقسيم الصفحة إلى 3 أعمدة لعرض الملاعب بجانب بعضها
+    col1, col2, col3 = st.columns(3)
+    
+    # إعداد ملعب عمودي بخلفية فاتحة مريحة للعين ونظام إحداثيات Opta
+    pitch = Pitch(pitch_type='opta', pitch_color='#f8f9fa', line_color='#333333', orientation='vertical')
+
+    # ---- العمود الأول: Offensive Actions ----
+    with col1:
+        st.subheader("⚔️ Offensive Actions")
+        fig1, ax1 = pitch.draw(figsize=(5, 7))
+        fig1.patch.set_facecolor('#f8f9fa')
+        
+        for _, row in passes_df.iterrows():
+            if row['type'] == 'Successful': color = '#94a3b8'
+            elif row['type'] == 'Progressive': color = '#0ea5e9'
+            else: color = '#a855f7' # Key Pass
+            pitch.arrows(row['x'], row['y'], row['end_x'], row['end_y'], color=color, width=2, headwidth=4, ax=ax1)
+        st.pyplot(fig1)
+        st.markdown("""
+        * <span style='color:#94a3b8'>■</span> Successful Pass: **47**
+        * <span style='color:#0ea5e9'>■</span> Progressive Pass: **8**
+        * <span style='color:#a855f7'>■</span> Key Passes: **4**
+        """, unsafe_allow_html=True)
+
+    # ---- العمود الثاني: Defensive Actions ----
+    with col2:
+        st.subheader("🛡️ Defensive Actions")
+        fig2, ax2 = pitch.draw(figsize=(5, 7))
+        fig2.patch.set_facecolor('#f8f9fa')
+        
+        for _, row in defensive_df.iterrows():
+            if 'Tackle' in row['action']: marker = 'x'
+            elif 'Recovery' in row['action']: marker = 'o'
+            else: marker = 's'
+            pitch.scatter(row['x'], row['y'], marker=marker, s=150, color='#0284c7', edgecolors='#ffffff', ax=ax2)
+        st.pyplot(fig2)
+        st.markdown("""
+        * **X** Tackle (Succ.): **2**
+        * **O** Ball Recoveries: **3**
+        * **■** Other Actions: **1**
+        """, unsafe_allow_html=True)
+
+    # ---- العمود الثالث: Touches & Pass Receiving ----
+    with col3:
+        st.subheader("📍 Touches & Pass Receiving")
+        fig3, ax3 = pitch.draw(figsize=(5, 7))
+        fig3.patch.set_facecolor('#f8f9fa')
+        
+        pitch.scatter(touches_df['x'], touches_df['y'], s=45, color='#ef4444', edgecolors='#ffffff', alpha=0.8, ax=ax3)
+        pitch.kdeplot(touches_df['x'], touches_df['y'], ax=ax3, cmap='Blues', fill=True, alpha=0.4, zorder=0)
+        st.pyplot(fig3)
+        st.markdown("""
+        * **Total Touches:** 70
+        * **at Final Third:** 12
+        * **at Penalty Box:** 0
+        """, unsafe_allow_html=True)
+
+# =========================================================================
+# القسم الثاني: واجهتك القديمة المعتادة (تظهر تلقائياً عند فتح الموقع)
+# =========================================================================
+else:
+    # ⚠️ اترك هذا الجزء كما هو وضع كودك القديم هنا ليعمل كالمعتاد ⚠️
+    st.title("TootScouting Platform 📊")
+    st.write("أهلاً بك في تطبيق التحليل الخاص بك.")
+    
+    st.info("قم باختيار '📊 لوحة تحليل لاعب (3 ملاعب)' من القائمة الجانبية لتجربة الأداة الجديدة المضافة.")
+    
+    # مثال لشغل قديم (خريطة حرارية بسيطة كمثال لحين وضع كودك الأصلي مكان هذا السطر):
+    st.subheader("مؤشرات تحليل الأداء الحالية")
+    chart_data = pd.DataFrame(np.random.randn(20, 3), columns=['تمريرات خفيفة', 'صناعة فرص', 'تمريرات طولية'])
+    st.line_chart(chart_data)
