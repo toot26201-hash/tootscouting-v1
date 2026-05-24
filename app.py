@@ -278,18 +278,4 @@ if uploaded_file is not None:
         if x_end_col and y_end_col:
             df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
             df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
-        else:
-            df['x_end_scaled'] = df['x_scaled']
-            df['y_end_scaled'] = df['y_scaled']
-    else:
-        st.sidebar.error("⚠️ لم نجد أعstige أعمدة الإحداثيات (X, Y) في الملف المرفوع!")
-
-    team_list = ['EPS']
-    selected_team = st.sidebar.selectbox("📋 Select Team", team_list)
-    team_df = df.copy()
-
-    with st.sidebar.expander("🎯 Passing & Attack Filters", expanded=True):
-        selected_passes = st.multiselect("Pass & Attack Types:", ["Normal Passes", "Crosses", "Through Balls", "Key Passes", "Corners", "Shots", "Goals"], default=["Normal Passes", "Crosses", "Shots", "Goals"])
-        
-    with st.sidebar.expander("🛡️ Defensive Filters", expanded=True):
-        selected_defense = st.multiselect("Actions:",
+        else
