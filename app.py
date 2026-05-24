@@ -276,12 +276,4 @@ if uploaded_file is not None:
 
     if x_start_col and y_start_col:
         df['x_scaled'] = df[x_start_col] if df[x_start_col].max() > 1 else df[x_start_col] * 120
-        df['y_scaled'] = df[y_start_col] if df[y_start_col].max() > 1 else df[y_start_col] * 80
-        if x_end_col and y_end_col:
-            df['x_end_scaled'] = df[x_end_col] if df[x_end_col].max() > 1 else df[x_end_col] * 120
-            df['y_end_scaled'] = df[y_end_col] if df[y_end_col].max() > 1 else df[y_end_col] * 80 
-        else:
-            df['x_end_scaled'] = df['x_scaled']
-            df['y_end_scaled'] = df['y_scaled']
-
-    team_
+        df['y_scaled'] = df[y_start_col] if df[y_start_col].
