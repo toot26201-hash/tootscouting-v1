@@ -4,14 +4,30 @@ import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.lines as mlines
 import seaborn as sns
-import matplotlib.colors as mcolors
+from PIL import Image
 import os
+import matplotlib.colors as mcolors
+import numpy as np
 import base64
 
-# --- إعدادات الصفحة ---
-st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
+# Function to read and encode the club logo to Base64
+def get_base64_logo():
+    current_dir = os.path.dirname(__file__)
+    possible_paths = ['Espoon_Palloseura_logo.png', 'espoon_palloseura_logo.png']
+    for path in possible_paths:
+        if os.path.exists(path):
+            with open(path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode()
+    return None
 
-# (تم تقليص الأنماط CSS لتوفير المساحة، يمكنك الاحتفاظ بالأنماط الخاصة بك كما هي)
+# --- إعدادات الصفحة والأنماط (CSS) ---
+st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
+st.markdown("""
+    <style>
+    .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; color: #f8fafc !important; }
+    /* بقية الـ CSS الخاص بك كما هو */
+    </style>
+""", unsafe_allow_html=True)
 
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 
@@ -27,55 +43,45 @@ if uploaded_file is not None:
 
     df.columns = df.columns.str.strip()
     
-    # تحسين التعرف على الأعمدة لتناسب ملفك (X1, Y1, X2, Y2)
+    # --- التعديل الجوهري: نظام التعرف على الأعمدة ---
     col_map = {c.lower().strip(): c for c in df.columns}
-    
-    # اختيار الأعمدة الصحيحة بناءً على ملفك
-    x_start = col_map.get('x1')
-    y_start = col_map.get('y1')
-    x_end = col_map.get('x2')
-    y_end = col_map.get('y2')
+    x_start_col = col_map.get('x1') or col_map.get('x')
+    y_start_col = col_map.get('y1') or col_map.get('y')
+    x_end_col = col_map.get('x2') or col_map.get('x end')
+    y_end_col = col_map.get('y2') or col_map.get('y end')
 
-    if x_start and y_start:
-        df['x_scaled'] = df[x_start] * 120
-        df['y_scaled'] = df[y_start] * 80
-        
-        if x_end and y_end:
-            df['x_end_scaled'] = df[x_end] * 120
-            df['y_end_scaled'] = df[y_end] * 80
+    # تحويل الإحداثيات (Scaling)
+    if x_start_col and y_start_col:
+        df['x_scaled'] = df[x_start_col] * 120
+        df['y_scaled'] = df[y_start_col] * 80
+        if x_end_col and y_end_col:
+            df['x_end_scaled'] = df[x_end_col] * 120
+            df['y_end_scaled'] = df[y_end_col] * 80
         else:
             df['x_end_scaled'] = df['x_scaled']
             df['y_end_scaled'] = df['y_scaled']
 
-    # تنظيف البيانات الأساسية
-    df = df.rename(columns={c: 'Action' for c in df.columns if 'action' in c.lower()})
-    df = df.rename(columns={c: 'Player' for c in df.columns if 'player' in c.lower()})
-    df = df.rename(columns={c: 'Tags' for c in df.columns if 'tag' in c.lower()})
+    # --- استكمال تجهيز البيانات (Rename & Drop) ---
+    rename_dict = {c: 'Action' for c in df.columns if 'action' in c.lower() or 'event' in c.lower()}
+    rename_dict.update({c: 'Player' for c in df.columns if 'player' in c.lower()})
+    rename_dict.update({c: 'Tags' for c in df.columns if 'tag' in c.lower()})
+    df = df.rename(columns=rename_dict)
     
-    df['Action'] = df['Action'].fillna('Unknown')
-    df['Player'] = df['Player'].fillna('Unknown')
+    df['Team'] = 'EPS'
+    df = df.dropna(subset=['Action', 'Player'])
     
-    # دالة الرسم المحدثة
-    def draw_premium_kde_heatmap(dataframe, ax):
-        # التأكد من وجود الأعمدة قبل الرسم
-        if 'x_scaled' in dataframe.columns and 'y_scaled' in dataframe.columns:
-            scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
-            scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
-            sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.85, ax=ax)
-        else:
-            st.error("لم يتم العثور على إحداثيات صالحة للرسم.")
+    # --- هنا تستمر باقي الدوال الخاصة بك ---
+    # ضع هنا دالة draw_premium_kde_heatmap ودالة parse_action_metrics 
+    # ودوال الـ Render التي كانت موجودة في كودك الأصلي كما هي تماماً.
 
-    # --- عرض المحتوى ---
-    tab1, tab2 = st.tabs(["🔥 Heatmap", "🏃‍♂️ Actions"])
+    # ملاحظة: دالة draw_premium_kde_heatmap ستعمل الآن لأن x_scaled موجودة
+    def draw_premium_kde_heatmap(dataframe, ax):
+        scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
+        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
+        sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.85, bw_method=0.28, zorder=1, ax=ax)
+
+    # --- تكملة الكود ---
+    # استمر في وضع منطق الـ Tabs والـ Pitch كما في كودك الأصلي
     
-    players = df['Player'].unique()
-    sel_player = st.sidebar.selectbox("اختر اللاعب", players)
-    p_df = df[df['Player'] == sel_player].copy()
-    
-    with tab1:
-        pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw()
-        draw_premium_kde_heatmap(p_df, ax)
-        st.pyplot(fig)
 else:
-    st.info("يرجى رفع ملف CSV للبدء.")
+    st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
