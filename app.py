@@ -90,7 +90,7 @@ if uploaded_file is not None:
                 elif act in ['Tackle', 'extraction']:
                     pitch.scatter(row['x_scaled'], row['y_scaled'], ax=ax2, color='purple', marker='d', s=150, zorder=3)
         
-        # إضافة دليل الرموز (مع تغيير رمز الـ Pressing إلى + ليتوافق مع matplotlib)
+        # إضافة دليل الرموز الكامل
         legend_elements = [
             Line2D([0], [0], color='blue', lw=2, label='Corner'),
             Line2D([0], [0], color='orange', lw=2, label='Cross'),
@@ -98,7 +98,11 @@ if uploaded_file is not None:
             Line2D([0], [0], color='gold', marker='*', linestyle='None', label='Goal'),
             Line2D([0], [0], color='red', marker='x', linestyle='None', label='Foul'),
             Line2D([0], [0], color='#2ecc71', marker='+', linestyle='None', label='Pressing (#)'),
-            Line2D([0], [0], color='purple', marker='d', linestyle='None', label='Tackle/Extraction')
+            Line2D([0], [0], color='purple', marker='d', linestyle='None', label='Tackle/Extract'),
+            Line2D([0], [0], color='#2ecc71', marker='^', linestyle='None', label='Aerial Duel Won'),
+            Line2D([0], [0], color='#e74c3c', marker='^', linestyle='None', label='Aerial Duel Lost'),
+            Line2D([0], [0], color='#2ecc71', marker='s', linestyle='None', label='Ground Duel Won'),
+            Line2D([0], [0], color='#e74c3c', marker='s', linestyle='None', label='Ground Duel Lost')
         ]
         ax2.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1), fontsize='small')
         st.pyplot(fig2)
