@@ -602,3 +602,8 @@ if uploaded_file is not None:
 
 else:
     st.info("👋 Please upload a match CSV file on the left sidebar to generate the dynamic dashboard.")
+    # التأكد من أن كل البيانات في team_df محدثة بالإحداثيات
+    team_df['x_scaled'] = team_df['x_start'] * 120
+    team_df['y_scaled'] = team_df['y_start'] * 80
+    team_df['x_end_scaled'] = team_df['x_end'] * 120
+    team_df['y_end_scaled'] = team_df['y_end'] * 80
