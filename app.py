@@ -3,9 +3,8 @@ import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import seaborn as sns
-import matplotlib.colors as mcolors
 
-# --- 1. المعالجة الذكية ---
+# --- المعالجة ---
 def process_data(uploaded_file):
     df = pd.read_csv(uploaded_file)
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
@@ -15,15 +14,13 @@ def process_data(uploaded_file):
     df = df.rename(columns=rename_dict)
     for col in ['x_start', 'y_start', 'x_end', 'y_end']:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-    
-    # تحويل المقاييس
     df['x_scaled'] = df['x_start'] * 120
     df['y_scaled'] = df['y_start'] * 80
     df['x_end_scaled'] = df['x_end'] * 120
     df['y_end_scaled'] = df['y_end'] * 80
-    return df.dropna(subset=['Action', 'Player'])
+    return df
 
-# --- 2. التصميم والإعدادات ---
+# --- الواجهة ---
 st.set_page_config(layout="wide")
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV", type=['csv'])
@@ -31,53 +28,51 @@ uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV", type=['csv'])
 if uploaded_file is not None:
     team_df = process_data(uploaded_file)
     
-    # الفلاتر
-    st.sidebar.markdown("### 🔍 فلترة العمليات")
-    attack_options = ["Pass", "Shot", "Cross", "Key Pass", "Corner", "Goal", "Through Ball", "Progressive Pass"]
-    selected_attack = st.sidebar.multiselect("⚽ الأكشن الهجومي:", attack_options, default=["Pass"])
-    
-    defense_options = ["Tackle", "Clearance", "Duel", "Interception"]
-    selected_defense = st.sidebar.multiselect("🛡️ الأكشن الدفاعي:", defense_options, default=["Tackle"])
+    # اختيار اللاعب
+    player_list = sorted([str(p) for p in team_df['Player'].unique() if str(p).strip() not in ['nan', '']])
+    sel_player = st.sidebar.selectbox("🎯 اختر اللاعب للتحليل:", player_list)
+    p_df = team_df[team_df['Player'] == sel_player].copy()
     
     # التابات
-    tab_player, tab_team_heat, tab_attack, tab_defense = st.tabs([
-        "👤 اللاعب", "👥 الفريق (Heatmap)", "⚽ الهجوم", "🛡️ الدفاع"
-    ])
+    tab_player, tab_team = st.tabs(["👤 تحليل اللاعب", "👥 تحليل الفريق"])
     
-    # 1. تابة اللاعب
+    # --- تابة اللاعب (الخرائط الثلاث) ---
     with tab_player:
-        player_list = sorted([str(p) for p in team_df['Player'].unique() if str(p).strip() not in ['nan', '']])
-        sel_player = st.selectbox("🎯 اختر اللاعب:", player_list)
-        p_df = team_df[team_df['Player'] == sel_player].copy()
-        pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw(figsize=(10, 7))
-        if len(p_df) > 1: sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], fill=True, cmap='viridis', ax=ax)
-        st.pyplot(fig)
+        st.subheader(f"📊 التحليل التكتيكي لـ: {sel_player}")
+        c1, c2, c3 = st.columns(3)
         
-    # 2. تابة الفريق
-    with tab_team_heat:
+        # 1. الخريطة الهجومية
+        with c1:
+            st.write("⚽ الأكشن الهجومي")
+            pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b')
+            fig, ax = pitch.draw()
+            atk = p_df[p_df['Action'].str.contains('Pass|Shot|Cross', case=False, na=False)]
+            pitch.arrows(atk.x_scaled, atk.y_scaled, atk.x_end_scaled, atk.y_end_scaled, ax=ax, color='blue', alpha=0.4)
+            st.pyplot(fig)
+            
+        # 2. الخريطة الدفاعية
+        with c2:
+            st.write("🛡️ الأكشن الدفاعي")
+            pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b')
+            fig, ax = pitch.draw()
+            def_df = p_df[p_df['Action'].str.contains('Tackle|Clearance|Duel', case=False, na=False)]
+            pitch.scatter(def_df.x_scaled, def_df.y_scaled, ax=ax, color='red', marker='x', s=100)
+            st.pyplot(fig)
+            
+        # 3. الخريطة المكس (كاملة)
+        with c3:
+            st.write("🔄 الخريطة الشاملة (Mix)")
+            pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b')
+            fig, ax = pitch.draw()
+            sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], fill=True, cmap='viridis', alpha=0.3, ax=ax)
+            st.pyplot(fig)
+
+    # تابة الفريق (كما كانت)
+    with tab_team:
+        st.write("### خريطة الفريق الحرارية")
         pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw(figsize=(10, 7))
+        fig, ax = pitch.draw()
         sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], fill=True, cmap='magma', ax=ax)
-        st.pyplot(fig)
-        
-    # 3. تابة الهجوم
-    with tab_attack:
-        pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw(figsize=(10, 7))
-        pattern = '|'.join(selected_attack)
-        atk_df = team_df[team_df['Action'].str.contains(pattern, case=False, na=False)]
-        for _, row in atk_df.iterrows():
-            pitch.arrows(row['x_scaled'], row['y_scaled'], row['x_end_scaled'], row['y_end_scaled'], ax=ax, color='blue', alpha=0.3)
-        st.pyplot(fig)
-        
-    # 4. تابة الدفاع
-    with tab_defense:
-        pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw(figsize=(10, 7))
-        pattern = '|'.join(selected_defense)
-        def_df = team_df[team_df['Action'].str.contains(pattern, case=False, na=False)]
-        pitch.scatter(def_df['x_scaled'], def_df['y_scaled'], ax=ax, color='red', marker='x', s=100)
         st.pyplot(fig)
 
 else:
