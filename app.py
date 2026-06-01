@@ -7,10 +7,10 @@ import matplotlib.colors as mcolors
 import os
 import base64
 
-# --- إعدادات الصفحة ---
-st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
+# --- 1. إعدادات الصفحة ---
+st.set_page_config(page_title="TootScouting Pro", layout="wide")
 
-# --- دالة تحميل اللوجو ---
+# --- 2. دالة تحميل اللوجو ---
 def get_base64_logo():
     path = 'Espoon_Palloseura_logo.png'
     if os.path.exists(path):
@@ -18,45 +18,50 @@ def get_base64_logo():
             return base64.b64encode(image_file.read()).decode()
     return None
 
+# --- 3. معالجة البيانات (تم إصلاح المشكلة هنا) ---
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
-
-# --- تحميل البيانات وتجهيزها ---
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
 
 if uploaded_file is not None:
+    # قراءة الملف وتنظيف أسماء الأعمدة من المسافات الزائدة
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
-    # 1. نظام التعرف على الأعمدة بناءً على ملفك
-    col_map = {c.lower().strip(): c for c in df.columns}
-    x_col = col_map.get('x1')
-    y_col = col_map.get('y1')
-    x_e_col = col_map.get('x2')
-    y_e_col = col_map.get('y2')
+    # دالة تحويل الإحداثيات (التي كانت تسبب الخطأ)
+    def preprocess_data(data):
+        # البحث عن الأعمدة بمرونة
+        col_map = {c.lower().strip(): c for c in data.columns}
+        x1 = col_map.get('x1')
+        y1 = col_map.get('y1')
+        x2 = col_map.get('x2')
+        y2 = col_map.get('y2')
+        
+        if x1 and y1:
+            data['x_scaled'] = data[x1] * 120
+            data['y_scaled'] = data[y1] * 80
+            if x2 and y2:
+                data['x_end_scaled'] = data[x2] * 120
+                data['y_end_scaled'] = data[y2] * 80
+        
+        # التأكد من أسماء الأعمدة الأساسية
+        rename_dict = {c: 'Action' for c in data.columns if 'action' in c.lower()}
+        rename_dict.update({c: 'Player' for c in data.columns if 'player' in c.lower()})
+        data = data.rename(columns=rename_dict)
+        return data
 
-    # 2. تحويل الإحداثيات فوراً
-    if x_col and y_col:
-        df['x_scaled'] = df[x_col] * 120
-        df['y_scaled'] = df[y_col] * 80
-        if x_e_col and y_e_col:
-            df['x_end_scaled'] = df[x_e_col] * 120
-            df['y_end_scaled'] = df[y_e_col] * 80
-        else:
-            df['x_end_scaled'] = df['x_scaled']
-            df['y_end_scaled'] = df['y_scaled']
-    
-    # تنظيف الأسماء
-    df = df.rename(columns={c: 'Action' for c in df.columns if 'action' in c.lower()})
-    df = df.rename(columns={c: 'Player' for c in df.columns if 'player' in c.lower()})
-    
-    # دالة الرسم (تم إصلاحها)
+    df = preprocess_data(df)
+
+    # --- 4. دالة الرسم (Heatmap) ---
     def draw_premium_kde_heatmap(dataframe, ax):
-        scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
-        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
-        # الرسم يعتمد الآن على x_scaled التي أنشأناها في الأعلى
-        sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.85, ax=ax, zorder=1)
+        # الفحص الذكي: هل الأعمدة موجودة؟
+        if 'x_scaled' in dataframe.columns and 'y_scaled' in dataframe.columns:
+            scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
+            scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
+            sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.85, ax=ax, zorder=1)
+        else:
+            st.error("خطأ: البيانات لا تحتوي على إحداثيات صالحة (x1, y1).")
 
-    # --- واجهة العرض ---
+    # --- 5. واجهة العرض (Tabs) ---
     players = df['Player'].dropna().unique()
     sel_player = st.sidebar.selectbox("🎯 اختر اللاعب", players)
     p_df = df[df['Player'] == sel_player].copy()
@@ -66,14 +71,11 @@ if uploaded_file is not None:
     with tab1:
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b')
         fig, ax = pitch.draw(figsize=(10, 7))
-        if 'x_scaled' in p_df.columns:
-            draw_premium_kde_heatmap(p_df, ax)
-            st.pyplot(fig)
-        else:
-            st.error("لم يتم العثور على أعمدة الإحداثيات الصحيحة!")
+        draw_premium_kde_heatmap(p_df, ax)
+        st.pyplot(fig)
 
     with tab2:
-        st.write("بيانات اللاعب المختارة:", p_df.head())
+        st.write("البيانات بعد المعالجة:", p_df.head())
 
 else:
     st.info("👋 يرجى رفع ملف الـ CSV للبدء.")
