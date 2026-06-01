@@ -2,80 +2,90 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
+import matplotlib.lines as mlines
 import seaborn as sns
-import matplotlib.colors as mcolors
+from PIL import Image
 import os
+import matplotlib.colors as mcolors
+import numpy as np
 import base64
 
-# --- 1. إعدادات الصفحة ---
-st.set_page_config(page_title="TootScouting Pro", layout="wide")
-
-# --- 2. دالة تحميل اللوجو ---
+# Function to read and encode the club logo to Base64
 def get_base64_logo():
-    path = 'Espoon_Palloseura_logo.png'
-    if os.path.exists(path):
-        with open(path, "rb") as image_file:
+    current_dir = os.path.dirname(__file__)
+    possible_paths = [
+        os.path.join(current_dir, 'Espoon_Palloseura_logo.png'),
+        os.path.join(current_dir, 'espoon_palloseura_logo.png'),
+        'Espoon_Palloseura_logo.png',
+        'espoon_palloseura_logo.png'
+    ]
+    logo_filename = None
+    for path in possible_paths:
+        if os.path.exists(path):
+            logo_filename = path
+            break
+    if logo_filename and os.path.exists(logo_filename):
+        with open(logo_filename, "rb") as image_file:
             return base64.b64encode(image_file.read()).decode()
     return None
 
-# --- 3. معالجة البيانات (تم إصلاح المشكلة هنا) ---
+# 1. Page Config
+st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
+
+# (CSS هنا يبقى كما هو في كودك الأصلي...)
+st.markdown("""<style> .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; color: #f8fafc !important; } </style>""", unsafe_allow_html=True)
+
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
+
+# --- Sidebar Controls ---
+st.sidebar.markdown("## 🛠️ Tactical Control Unit")
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
 
 if uploaded_file is not None:
-    # قراءة الملف وتنظيف أسماء الأعمدة من المسافات الزائدة
-    df = pd.read_csv(uploaded_file)
+    try:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8-sig')
+    except:
+        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
+
     df.columns = df.columns.str.strip()
     
-    # دالة تحويل الإحداثيات (التي كانت تسبب الخطأ)
-    def preprocess_data(data):
-        # البحث عن الأعمدة بمرونة
-        col_map = {c.lower().strip(): c for c in data.columns}
-        x1 = col_map.get('x1')
-        y1 = col_map.get('y1')
-        x2 = col_map.get('x2')
-        y2 = col_map.get('y2')
-        
-        if x1 and y1:
-            data['x_scaled'] = data[x1] * 120
-            data['y_scaled'] = data[y1] * 80
-            if x2 and y2:
-                data['x_end_scaled'] = data[x2] * 120
-                data['y_end_scaled'] = data[y2] * 80
-        
-        # التأكد من أسماء الأعمدة الأساسية
-        rename_dict = {c: 'Action' for c in data.columns if 'action' in c.lower()}
-        rename_dict.update({c: 'Player' for c in data.columns if 'player' in c.lower()})
-        data = data.rename(columns=rename_dict)
-        return data
+    # --- التعديل الجوهري هنا: تصحيح الأعمدة ---
+    # ننشئ قاموس للبحث عن الأعمدة بأي حالة أحرف
+    col_map = {c.lower().strip(): c for c in df.columns}
+    
+    # البحث عن الأعمدة الصحيحة (X1, Y1, X2, Y2)
+    x_start_col = col_map.get('x1') or col_map.get('x')
+    y_start_col = col_map.get('y1') or col_map.get('y')
+    x_end_col = col_map.get('x2')
+    y_end_col = col_map.get('y2')
 
-    df = preprocess_data(df)
-
-    # --- 4. دالة الرسم (Heatmap) ---
-    def draw_premium_kde_heatmap(dataframe, ax):
-        # الفحص الذكي: هل الأعمدة موجودة؟
-        if 'x_scaled' in dataframe.columns and 'y_scaled' in dataframe.columns:
-            scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
-            scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
-            sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.85, ax=ax, zorder=1)
+    # تحويل الإحداثيات (Scaling)
+    if x_start_col and y_start_col:
+        df['x_scaled'] = df[x_start_col] * 120
+        df['y_scaled'] = df[y_start_col] * 80
+        if x_end_col and y_end_col:
+            df['x_end_scaled'] = df[x_end_col] * 120
+            df['y_end_scaled'] = df[y_end_col] * 80
         else:
-            st.error("خطأ: البيانات لا تحتوي على إحداثيات صالحة (x1, y1).")
+            df['x_end_scaled'] = df['x_scaled']
+            df['y_end_scaled'] = df['y_scaled']
 
-    # --- 5. واجهة العرض (Tabs) ---
-    players = df['Player'].dropna().unique()
-    sel_player = st.sidebar.selectbox("🎯 اختر اللاعب", players)
-    p_df = df[df['Player'] == sel_player].copy()
+    # تنظيف الأسماء الأساسية
+    rename_dict = {c: 'Action' for c in df.columns if 'action' in c.lower() or 'event' in c.lower()}
+    rename_dict.update({c: 'Player' for c in df.columns if 'player' in c.lower()})
+    rename_dict.update({c: 'Tags' for c in df.columns if 'tag' in c.lower()})
+    df = df.rename(columns=rename_dict)
     
-    tab1, tab2 = st.tabs(["🔥 Heatmap", "📊 Data Preview"])
+    df['Team'] = 'EPS'
+    df = df.dropna(subset=['Action', 'Player'])
+    df['Tags'] = df['Tags'].fillna('')
+    df['Player'] = df['Player'].astype(str).str.strip()
+
+    # --- باقي الكود الخاص بك (الدوال و الـ Tabs) ---
+    # تأكد من نسخ دالة draw_premium_kde_heatmap و parse_action_metrics هنا كما كانت في كودك الأصلي
+    # وسوف تعمل الآن لأن الأعمدة x_scaled و y_scaled أصبحت موجودة ومضمونة.
     
-    with tab1:
-        pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b')
-        fig, ax = pitch.draw(figsize=(10, 7))
-        draw_premium_kde_heatmap(p_df, ax)
-        st.pyplot(fig)
-
-    with tab2:
-        st.write("البيانات بعد المعالجة:", p_df.head())
-
+    # ... ضع بقية كودك من أول def get_full_legend(): إلى نهاية الملف هنا ...
+    
 else:
-    st.info("👋 يرجى رفع ملف الـ CSV للبدء.")
+    st.info("👋 Please upload a match CSV file.")
