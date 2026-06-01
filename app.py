@@ -45,6 +45,7 @@ if uploaded_file is not None:
 
     p_df = df[df['Player'] == sel_player].copy()
     
+    # التبويبات
     tab1, tab2 = st.tabs(["🔥 Heatmap", "🗺️ Action Maps"])
     
     with tab1:
@@ -57,11 +58,19 @@ if uploaded_file is not None:
         selected_actions = att_choices + def_choices
         
         for act in selected_actions:
-            subset = p_df[p_df['Action'].str.contains(act, case=False, na=False) | p_df['Tags'].str.contains(act, case=False, na=False)]
+            # بحث مرن: يبحث في Action أو Tags بأي طريقة كتابة
+            subset = p_df[p_df['Action'].str.contains(act, case=False, na=False) | 
+                          p_df['Tags'].str.contains(act, case=False, na=False)]
+            
+            # إذا كان الضغط العكسي، نبحث بكلمة "counter" لضمان التقاط أي تسمية
+            if act == 'Counter-press' and subset.empty:
+                 subset = p_df[p_df['Action'].str.contains('counter', case=False, na=False) | 
+                               p_df['Tags'].str.contains('counter', case=False, na=False)]
+
             for _, row in subset.iterrows():
                 tag = str(row['Tags']).lower()
                 
-                # الرسم على الملعب
+                # الرسم
                 if act == 'Corner':
                     pitch.arrows(row['x_scaled'], row['y_scaled'], row['x2_scaled'], row['y2_scaled'], ax=ax2, color='blue', width=2, headwidth=5, zorder=3)
                 elif act == 'Cross':
@@ -94,17 +103,13 @@ if uploaded_file is not None:
             Line2D([0], [0], color='blue', lw=2, label='Corner'),
             Line2D([0], [0], color='orange', lw=2, label='Cross'),
             Line2D([0], [0], color='#2ecc71', marker='>', linestyle='None', label='Pass Success'),
-            Line2D([0], [0], color='#e74c3c', marker='>', linestyle='None', label='Pass Fail'),
             Line2D([0], [0], color='gold', marker='*', linestyle='None', label='Goal'),
-            Line2D([0], [0], color='#2563eb', marker='*', linestyle='None', label='Shot On Target'),
             Line2D([0], [0], color='red', marker='x', linestyle='None', label='Foul'),
             Line2D([0], [0], color='#2ecc71', marker='+', linestyle='None', label='Pressing (#)'),
             Line2D([0], [0], color='#f59e0b', marker='o', markeredgecolor='#f59e0b', markerfacecolor='none', linestyle='None', label='Counter-press'),
             Line2D([0], [0], color='purple', marker='d', linestyle='None', label='Tackle/Extract'),
             Line2D([0], [0], color='#2ecc71', marker='^', linestyle='None', label='Aerial Duel Won'),
-            Line2D([0], [0], color='#e74c3c', marker='^', linestyle='None', label='Aerial Duel Lost'),
-            Line2D([0], [0], color='#2ecc71', marker='s', linestyle='None', label='Ground Duel Won'),
-            Line2D([0], [0], color='#e74c3c', marker='s', linestyle='None', label='Ground Duel Lost')
+            Line2D([0], [0], color='#2ecc71', marker='s', linestyle='None', label='Ground Duel Won')
         ]
         ax2.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1), fontsize='small')
         st.pyplot(fig2)
