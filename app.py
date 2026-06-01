@@ -21,7 +21,6 @@ def draw_toot_pitch(player_name):
         positional_color='#e2e8f0'
     )
     fig, ax = pitch.draw(figsize=(10, 7))
-    # إضافة اسم اللاعب كعلامة مائية
     ax.text(60, 40, player_name, fontsize=30, color='#1e293b', 
             alpha=0.15, fontweight='bold', ha='center', va='center', zorder=1)
     return pitch, fig, ax
@@ -33,7 +32,7 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
-    # تصحيح الأعمدة وربطها
+    # إصلاح الأعمدة
     df = df.rename(columns={'X1': 'x1', 'Y1': 'y1'})
     df['x_scaled'] = df['x1'] * 120
     df['y_scaled'] = df['y1'] * 80
@@ -83,8 +82,9 @@ if uploaded_file is not None:
             # الدفاع
             elif 'Foul' in act:
                 pitch.scatter(row['x_scaled'], row['y_scaled'], ax=ax2, color='red', marker='x', s=150, zorder=3)
+            # تم استبدال marker='#' بـ ax2.text لتفادي الخطأ
             elif 'pressing' in act:
-                pitch.scatter(row['x_scaled'], row['y_scaled'], ax=ax2, color='#2ecc71', marker='#', s=150, zorder=3)
+                ax2.text(row['x_scaled'], row['y_scaled'], '#', color='#2ecc71', fontsize=20, fontweight='bold', ha='center', va='center', zorder=3)
             elif 'Aerial' in act:
                 color = '#2ecc71' if 'Won' in tag else '#e74c3c'
                 pitch.scatter(row['x_scaled'], row['y_scaled'], ax=ax2, color=color, marker='^', s=150, zorder=3)
