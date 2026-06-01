@@ -2,30 +2,11 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
-import matplotlib.lines as mlines
 import seaborn as sns
-import os
+import numpy as np
 import matplotlib.colors as mcolors
-import base64
 
-# --- 1. الدوال المساعدة ---
-def get_base64_logo():
-    # تأكد من وضع ملف اللوجو في نفس مجلد الملف
-    return None 
-
-# --- 2. الدوال التحليلية (التي أرسلتها أنت) ---
-def parse_action_metrics(dataframe, ax, pitch_obj, layers, draw_mode=True, specific_type=None):
-    # (تم دمج دالتك الأصلية هنا)
-    matrix = {"total_passes": 0, "success_passes": 0, "crosses": 0, "success_crosses": 0, "through_balls": 0, "key_passes": 0, "tackles": 0, "clearances": 0, "ground_duels_won": 0, "aerial_duels_won": 0, "fouls": 0, "counterpress": 0, "goals": 0, "shots_on_target": 0, "shots_off_target": 0}
-    # [باقي منطق دالتك الأصلية هنا بالضبط]
-    return matrix
-
-def draw_premium_kde_heatmap(dataframe, ax):
-    scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
-    scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
-    sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.85, bw_method=0.28, zorder=1, ax=ax)
-
-# --- 3. المعالجة الذكية (هنا يتم تحويل أعمدة ملفك) ---
+# --- إعداد المعالجة ---
 def process_data(uploaded_file):
     df = pd.read_csv(uploaded_file)
     df = df.loc[:, ~df.columns.str.contains('^Unnamed')]
@@ -41,7 +22,7 @@ def process_data(uploaded_file):
     df['y_end_scaled'] = df['y_end'] * 80
     return df.dropna(subset=['Action', 'Player'])
 
-# --- 4. الهيكل الرئيسي (التابات) ---
+# --- واجهة التطبيق ---
 st.set_page_config(layout="wide")
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV", type=['csv'])
@@ -49,20 +30,51 @@ uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV", type=['csv'])
 if uploaded_file is not None:
     team_df = process_data(uploaded_file)
     player_list = sorted(team_df['Player'].unique().tolist())
-    sel_player = st.sidebar.selectbox("🎯 Focus Player:", player_list)
+    sel_player = st.sidebar.selectbox("🎯 Select Player:", player_list)
     p_df = team_df[team_df['Player'] == sel_player].copy()
     
-    # تعريف التابات
+    # --- تعريف التابات ---
     tab1, tab2, tab3, tab4, tab5 = st.tabs(["🔥 Heatmap", "🏃‍♂️ Actions", "📊 Stats", "👥 Team Heat", "🛡️ Team Defense"])
     
-    # هنا ضع محتويات التابات (with tab1:, with tab2:...) 
-    # بنفس الطريقة التي كانت في كودك القديم
+    # 1. تابة الهيت ماب
     with tab1:
+        st.write("### Player Heatmap")
         pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw(figsize=(10,7))
-        draw_premium_kde_heatmap(p_df, ax)
+        fig, ax = pitch.draw(figsize=(10, 7))
+        if len(p_df) > 1:
+            sns.kdeplot(x=p_df['x_scaled'], y=p_df['y_scaled'], fill=True, cmap='viridis', ax=ax)
         st.pyplot(fig)
         
-    # (أكمل باقي التابات بنفس الترتيب)
+    # 2. تابة الأكشن
+    with tab2:
+        st.write("### Player Actions Map")
+        pitch = Pitch(pitch_type='statsbomb')
+        fig, ax = pitch.draw(figsize=(10, 7))
+        for _, row in p_df.iterrows():
+            pitch.arrows(row['x_scaled'], row['y_scaled'], row['x_end_scaled'], row['y_end_scaled'], ax=ax, color='green')
+        st.pyplot(fig)
+
+    # 3. تابة الإحصائيات (مثال بسيط)
+    with tab3:
+        st.write("### Performance Statistics")
+        st.dataframe(p_df[['Action', 'Player', 'Tags']])
+
+    # 4. تابة الفريق (Heatmap)
+    with tab4:
+        st.write("### Team Heatmap")
+        pitch = Pitch(pitch_type='statsbomb')
+        fig, ax = pitch.draw(figsize=(10, 7))
+        sns.kdeplot(x=team_df['x_scaled'], y=team_df['y_scaled'], fill=True, cmap='viridis', ax=ax)
+        st.pyplot(fig)
+
+    # 5. تابة الدفاع
+    with tab5:
+        st.write("### Team Defensive Actions")
+        pitch = Pitch(pitch_type='statsbomb')
+        fig, ax = pitch.draw(figsize=(10, 7))
+        def_df = team_df[team_df['Action'].str.contains('Tackle|Clearance', case=False, na=False)]
+        pitch.scatter(def_df['x_scaled'], def_df['y_scaled'], ax=ax, color='red')
+        st.pyplot(fig)
+
 else:
-    st.info("👋 يرجى رفع ملف CSV.")
+    st.info("👋 يرجى رفع ملف CSV للبدء.")
