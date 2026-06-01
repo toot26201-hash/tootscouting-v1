@@ -14,32 +14,34 @@ if uploaded_file is not None:
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
-    # إصلاح الإحداثيات
+    # إصلاح الأعمدة
     df = df.rename(columns={'X1': 'x1', 'Y1': 'y1'})
     df['x_scaled'] = df['x1'] * 120
     df['y_scaled'] = df['y1'] * 80
     
-    # تنظيف الأسماء
     df = df.rename(columns={c: 'Action' for c in df.columns if 'action' in c.lower() or 'event' in c.lower()})
     df = df.rename(columns={c: 'Player' for c in df.columns if 'player' in c.lower()})
+    df = df.rename(columns={c: 'Tags' for c in df.columns if 'tag' in c.lower()})
     df['Player'] = df['Player'].fillna('Unknown').astype(str)
+    df['Tags'] = df['Tags'].fillna('').astype(str)
 
-    # الأدوات في الـ Sidebar
+    # الأدوات
     players = sorted(df['Player'].dropna().unique().tolist())
     sel_player = st.sidebar.selectbox("🎯 اختر اللاعب:", players)
     
-    att_choices = st.sidebar.multiselect("⚽ الأكشن الهجومي:", ["Pass", "Shot", "Cross", "Through Ball"])
-    def_choices = st.sidebar.multiselect("🛡️ الأكشن الدفاعي:", ["pressing", "extraction", "Tackle", "Foul"])
+    # إضافة الخيارات الجديدة للهجوم
+    att_choices = st.sidebar.multiselect("⚽ الأكشن الهجومي:", 
+                                         ["Pass", "Shot", "Cross", "Through Ball", "Progressive Pass", "Corner", "Goal"])
+    
+    def_choices = st.sidebar.multiselect("🛡️ الأكشن الدفاعي:", 
+                                         ["pressing", "extraction", "Tackle", "Foul"])
 
     # نموذج الملعب مع كتابة اسم اللاعب
     def draw_toot_pitch(player_name):
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b', 
                       linestyle='--', linewidth=1, goal_linestyle='-', positional=True, positional_color='#e2e8f0')
         fig, ax = pitch.draw(figsize=(10, 7))
-        
-        # إضافة اسم اللاعب كعلامة مائية في منتصف الملعب
-        ax.text(60, 40, player_name, fontsize=30, color='#1e293b', 
-                alpha=0.15, fontweight='bold', ha='center', va='center', zorder=1)
+        ax.text(60, 40, player_name, fontsize=30, color='#1e293b', alpha=0.15, fontweight='bold', ha='center', va='center', zorder=1)
         return pitch, fig, ax
 
     p_df = df[df['Player'] == sel_player].copy()
@@ -54,15 +56,20 @@ if uploaded_file is not None:
         
     with tab2:
         pitch, fig2, ax2 = draw_toot_pitch(sel_player)
-        selected_actions = att_choices + def_choices
-        if selected_actions:
-            for act in att_choices:
-                subset = p_df[p_df['Action'].str.contains(act, case=False, na=False)]
-                pitch.scatter(subset['x_scaled'], subset['y_scaled'], ax=ax2, color='blue', s=150, label=act, zorder=3)
-            for act in def_choices:
-                subset = p_df[p_df['Action'].str.contains(act, case=False, na=False)]
-                pitch.scatter(subset['x_scaled'], subset['y_scaled'], ax=ax2, color='red', marker='x', s=150, label=act, zorder=3)
-            ax2.legend()
+        
+        # دمج البحث في Action أو Tags
+        for act in att_choices:
+            # البحث عن الأكشن في عمود Action أو Tags (لضمان التقاط الأهداف والركنيات)
+            subset = p_df[p_df['Action'].str.contains(act, case=False, na=False) | p_df['Tags'].str.contains(act, case=False, na=False)]
+            color = 'gold' if act == 'Goal' else ('orange' if act == 'Corner' else 'blue')
+            marker = '*' if act == 'Goal' else 'o'
+            pitch.scatter(subset['x_scaled'], subset['y_scaled'], ax=ax2, color=color, s=200, marker=marker, label=act, zorder=3)
+            
+        for act in def_choices:
+            subset = p_df[p_df['Action'].str.contains(act, case=False, na=False) | p_df['Tags'].str.contains(act, case=False, na=False)]
+            pitch.scatter(subset['x_scaled'], subset['y_scaled'], ax=ax2, color='red', marker='x', s=150, label=act, zorder=3)
+        
+        ax2.legend()
         st.pyplot(fig2)
 
 else:
