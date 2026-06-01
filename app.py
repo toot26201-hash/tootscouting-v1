@@ -41,13 +41,10 @@ if uploaded_file is not None:
     # الأدوات الجانبية
     sel_player = st.sidebar.selectbox("🎯 اختر اللاعب:", sorted(df['Player'].unique()))
     att_choices = st.sidebar.multiselect("⚽ الأكشن الهجومي:", ["Pass", "Shot", "Cross", "Goal", "Corner", "Progressive Pass"])
-    
-    # هنا تم إضافة Counter-press بشكل صريح في الدروب ليست
     def_choices = st.sidebar.multiselect("🛡️ الأكشن الدفاعي:", ["pressing", "Counter-press", "extraction", "Tackle", "Foul", "Ground Duel", "Aerial Duel"])
 
     p_df = df[df['Player'] == sel_player].copy()
     
-    # التبويبات
     tab1, tab2 = st.tabs(["🔥 Heatmap", "🗺️ Action Maps"])
     
     with tab1:
@@ -64,7 +61,7 @@ if uploaded_file is not None:
             for _, row in subset.iterrows():
                 tag = str(row['Tags']).lower()
                 
-                # التمريرات
+                # الرسم على الملعب
                 if act == 'Corner':
                     pitch.arrows(row['x_scaled'], row['y_scaled'], row['x2_scaled'], row['y2_scaled'], ax=ax2, color='blue', width=2, headwidth=5, zorder=3)
                 elif act == 'Cross':
@@ -72,8 +69,6 @@ if uploaded_file is not None:
                 elif act in ["Pass", "Progressive Pass"]:
                     color = '#2ecc71' if 'success' in tag else '#e74c3c'
                     pitch.arrows(row['x_scaled'], row['y_scaled'], row['x2_scaled'], row['y2_scaled'], ax=ax2, color=color, width=2, headwidth=5, zorder=3)
-                
-                # التسديدات والدفاع
                 elif act == 'Shot':
                     color = '#2563eb' if 'on target' in tag else '#dc2626'
                     pitch.scatter(row['x_scaled'], row['y_scaled'], ax=ax2, color=color, marker='*', s=200, zorder=3)
@@ -94,13 +89,22 @@ if uploaded_file is not None:
                 elif act in ['Tackle', 'extraction']:
                     pitch.scatter(row['x_scaled'], row['y_scaled'], ax=ax2, color='purple', marker='d', s=150, zorder=3)
         
-        # إضافة دليل الرموز
+        # دليل رموز شامل
         legend_elements = [
             Line2D([0], [0], color='blue', lw=2, label='Corner'),
             Line2D([0], [0], color='orange', lw=2, label='Cross'),
+            Line2D([0], [0], color='#2ecc71', marker='>', linestyle='None', label='Pass Success'),
+            Line2D([0], [0], color='#e74c3c', marker='>', linestyle='None', label='Pass Fail'),
+            Line2D([0], [0], color='gold', marker='*', linestyle='None', label='Goal'),
+            Line2D([0], [0], color='#2563eb', marker='*', linestyle='None', label='Shot On Target'),
+            Line2D([0], [0], color='red', marker='x', linestyle='None', label='Foul'),
             Line2D([0], [0], color='#2ecc71', marker='+', linestyle='None', label='Pressing (#)'),
             Line2D([0], [0], color='#f59e0b', marker='o', markeredgecolor='#f59e0b', markerfacecolor='none', linestyle='None', label='Counter-press'),
-            Line2D([0], [0], color='purple', marker='d', linestyle='None', label='Tackle/Extract')
+            Line2D([0], [0], color='purple', marker='d', linestyle='None', label='Tackle/Extract'),
+            Line2D([0], [0], color='#2ecc71', marker='^', linestyle='None', label='Aerial Duel Won'),
+            Line2D([0], [0], color='#e74c3c', marker='^', linestyle='None', label='Aerial Duel Lost'),
+            Line2D([0], [0], color='#2ecc71', marker='s', linestyle='None', label='Ground Duel Won'),
+            Line2D([0], [0], color='#e74c3c', marker='s', linestyle='None', label='Ground Duel Lost')
         ]
         ax2.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1), fontsize='small')
         st.pyplot(fig2)
