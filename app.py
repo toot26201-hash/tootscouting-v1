@@ -4,62 +4,44 @@ import matplotlib.pyplot as plt
 from mplsoccer import Pitch
 import matplotlib.lines as mlines
 import seaborn as sns
-from PIL import Image
-import os
 import matplotlib.colors as mcolors
-import numpy as np
+import os
 import base64
 
-# Function to read and encode the club logo to Base64
+# --- وظائف مساعدة ---
 def get_base64_logo():
-    current_dir = os.path.dirname(__file__)
-    possible_paths = [
-        os.path.join(current_dir, 'Espoon_Palloseura_logo.png'),
-        os.path.join(current_dir, 'espoon_palloseura_logo.png'),
-        'Espoon_Palloseura_logo.png',
-        'espoon_palloseura_logo.png'
-    ]
-    logo_filename = None
+    possible_paths = ['Espoon_Palloseura_logo.png', 'espoon_palloseura_logo.png']
     for path in possible_paths:
         if os.path.exists(path):
-            logo_filename = path
-            break
-    if logo_filename and os.path.exists(logo_filename):
-        with open(logo_filename, "rb") as image_file:
-            return base64.b64encode(image_file.read()).decode()
+            with open(path, "rb") as image_file:
+                return base64.b64encode(image_file.read()).decode()
     return None
 
-# 1. Page Config
+# --- إعدادات الصفحة ---
 st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
 
-# (CSS هنا يبقى كما هو في كودك الأصلي...)
-st.markdown("""<style> .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; color: #f8fafc !important; } </style>""", unsafe_allow_html=True)
+# --- حقن الأنماط (CSS) ---
+st.markdown("""<style>
+    .stApp { background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%) !important; color: #f8fafc !important; }
+    .premium-player-card { background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%); border: 2px solid #a47e3c; border-radius: 16px; padding: 24px; color: white; }
+</style>""", unsafe_allow_html=True)
 
 st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 
-# --- Sidebar Controls ---
-st.sidebar.markdown("## 🛠️ Tactical Control Unit")
+# --- تحميل البيانات ---
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV Data", type=['csv'])
 
 if uploaded_file is not None:
-    try:
-        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='utf-8-sig')
-    except:
-        df = pd.read_csv(uploaded_file, sep=None, engine='python', encoding='cp1252')
-
+    df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
     
-    # --- التعديل الجوهري هنا: تصحيح الأعمدة ---
-    # ننشئ قاموس للبحث عن الأعمدة بأي حالة أحرف
+    # 1. نظام تصحيح الأعمدة الذكي
     col_map = {c.lower().strip(): c for c in df.columns}
-    
-    # البحث عن الأعمدة الصحيحة (X1, Y1, X2, Y2)
     x_start_col = col_map.get('x1') or col_map.get('x')
     y_start_col = col_map.get('y1') or col_map.get('y')
-    x_end_col = col_map.get('x2')
-    y_end_col = col_map.get('y2')
+    x_end_col = col_map.get('x2') or col_map.get('x end')
+    y_end_col = col_map.get('y2') or col_map.get('y end')
 
-    # تحويل الإحداثيات (Scaling)
     if x_start_col and y_start_col:
         df['x_scaled'] = df[x_start_col] * 120
         df['y_scaled'] = df[y_start_col] * 80
@@ -67,25 +49,35 @@ if uploaded_file is not None:
             df['x_end_scaled'] = df[x_end_col] * 120
             df['y_end_scaled'] = df[y_end_col] * 80
         else:
-            df['x_end_scaled'] = df['x_scaled']
-            df['y_end_scaled'] = df['y_scaled']
+            df['x_end_scaled'], df['y_end_scaled'] = df['x_scaled'], df['y_scaled']
 
-    # تنظيف الأسماء الأساسية
-    rename_dict = {c: 'Action' for c in df.columns if 'action' in c.lower() or 'event' in c.lower()}
-    rename_dict.update({c: 'Player' for c in df.columns if 'player' in c.lower()})
-    rename_dict.update({c: 'Tags' for c in df.columns if 'tag' in c.lower()})
-    df = df.rename(columns=rename_dict)
-    
-    df['Team'] = 'EPS'
-    df = df.dropna(subset=['Action', 'Player'])
-    df['Tags'] = df['Tags'].fillna('')
-    df['Player'] = df['Player'].astype(str).str.strip()
+    # 2. تنظيف البيانات
+    df = df.rename(columns={c: 'Action' for c in df.columns if 'action' in c.lower() or 'event' in c.lower()})
+    df = df.rename(columns={c: 'Player' for c in df.columns if 'player' in c.lower()})
+    df['Player'] = df['Player'].fillna('Unknown').astype(str)
 
-    # --- باقي الكود الخاص بك (الدوال و الـ Tabs) ---
-    # تأكد من نسخ دالة draw_premium_kde_heatmap و parse_action_metrics هنا كما كانت في كودك الأصلي
-    # وسوف تعمل الآن لأن الأعمدة x_scaled و y_scaled أصبحت موجودة ومضمونة.
+    # --- 3. الدوال التكتيكية ---
+    def draw_premium_kde_heatmap(dataframe, ax):
+        scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
+        scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
+        if 'x_scaled' in dataframe.columns:
+            sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, ax=ax)
+
+    # --- 4. العرض ---
+    players = sorted(df['Player'].unique().tolist())
+    sel_player = st.sidebar.selectbox("🎯 اختر اللاعب", players)
+    p_df = df[df['Player'] == sel_player].copy()
     
-    # ... ضع بقية كودك من أول def get_full_legend(): إلى نهاية الملف هنا ...
+    tab1, tab2 = st.tabs(["🔥 Heatmap", "📋 البيانات"])
     
+    with tab1:
+        pitch = Pitch(pitch_type='statsbomb', pitch_color='#ffffff', line_color='#22312b')
+        fig, ax = pitch.draw(figsize=(10, 7))
+        draw_premium_kde_heatmap(p_df, ax)
+        st.pyplot(fig)
+        
+    with tab2:
+        st.write(p_df.head(10))
+
 else:
-    st.info("👋 Please upload a match CSV file.")
+    st.info("👋 يرجى رفع ملف CSV للبدء.")
