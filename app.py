@@ -2,86 +2,84 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from mplsoccer import Pitch
-import matplotlib.lines as mlines
 import seaborn as sns
-import os
-import matplotlib.colors as mcolors
-import numpy as np
-import base64
 
-# --- إعداد الصفحة ---
-st.set_page_config(page_title="TootScouting Tactical Master Pro", layout="wide")
-
-# --- الدوال التحليلية (تم تعريفها قبل الاستخدام) ---
-def get_full_legend():
-    return [
-        mlines.Line2D([], [], color='#2ecc71', marker='>', linestyle='-', label='Pass Success', markersize=8),
-        mlines.Line2D([], [], color='#e74c3c', marker='>', linestyle='-', label='Pass Failed', markersize=8),
-        mlines.Line2D([], [], color='blue', marker='>', linestyle='-', label='Cross Success', markersize=8),
-        mlines.Line2D([], [], color='red', marker='>', linestyle='--', label='Cross Failed', markersize=8),
-        mlines.Line2D([], [], color='#FF69B4', marker='>', linestyle='-', label='Through Ball', markersize=8),
-        mlines.Line2D([], [], color='#fbbf24', marker='>', linestyle='-', label='Key Pass 🔑', markersize=10, linewidth=3),
-        mlines.Line2D([], [], color='#2563eb', marker='*', label='Shot On-Target', linestyle='None', markersize=12),
-        mlines.Line2D([], [], color='#dc2626', marker='*', label='Shot Off-Target', linestyle='None', markersize=12),
-        mlines.Line2D([], [], color='blue', marker='x', label='Tackle', linestyle='None', markersize=10),
-        mlines.Line2D([], [], color='purple', marker='d', label='Clearance', linestyle='None', markersize=10),
-        mlines.Line2D([], [], color='gold', marker='*', label='Goal', linestyle='None', markersize=15)
-    ]
-
-def draw_premium_kde_heatmap(dataframe, ax):
-    scout_lab_colors = ["#3b82f6", "#10b981", "#facc15", "#f97316", "#7f1d1d"]
-    scout_cmap = mcolors.LinearSegmentedColormap.from_list("scout_lab", scout_lab_colors, N=256)
-    sns.kdeplot(x=dataframe['x_scaled'], y=dataframe['y_scaled'], cmap=scout_cmap, fill=True, thresh=0.04, alpha=0.85, bw_method=0.28, zorder=1, ax=ax)
-
-# --- المعالجة الذكية للبيانات ---
+# --- 1. معالجة البيانات ---
 def process_data(uploaded_file):
     df = pd.read_csv(uploaded_file)
     df.columns = df.columns.str.strip()
-    # تحويل الأسماء
-    rename_dict = {'Action': 'Action', 'Player': 'Player', 'Tags': 'Tags', 'X1': 'x_start', 'Y1': 'y_start', 'X2': 'x_end', 'Y2': 'y_end'}
+    rename_dict = {'Action': 'Action', 'Player': 'Player', 'Tags': 'Tags', 
+                   'X1': 'x_start', 'Y1': 'y_start', 'X2': 'x_end', 'Y2': 'y_end'}
     df = df.rename(columns=rename_dict)
-    
-    # حساب الإحداثيات (هنا السر: يتم الحساب فوراً لكل البيانات)
     for col in ['x_start', 'y_start', 'x_end', 'y_end']:
         df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
-    
     df['x_scaled'] = df['x_start'] * 120
     df['y_scaled'] = df['y_start'] * 80
     df['x_end_scaled'] = df['x_end'] * 120
     df['y_end_scaled'] = df['y_end'] * 80
-    return df.dropna(subset=['Action', 'Player'])
+    return df
 
-# --- التنفيذ ---
+# --- 2. الإعدادات ---
+st.set_page_config(layout="wide")
+st.title("🔬 TootScouting | Tactical Analysis Pro Lab")
 uploaded_file = st.sidebar.file_uploader("📥 Upload Match CSV", type=['csv'])
 
 if uploaded_file is not None:
-    # نقوم بالمعالجة مرة واحدة هنا
     full_df = process_data(uploaded_file)
     
-    player_list = sorted([str(p) for p in full_df['Player'].unique() if str(p).strip() not in ['nan', '']])
-    sel_player = st.sidebar.selectbox("🎯 Select Player:", player_list)
+    # اختيار اللاعب
+    players = sorted([str(p) for p in full_df['Player'].unique() if str(p).strip() not in ['nan', '']])
+    sel_player = st.sidebar.selectbox("🎯 اختر اللاعب:", players)
     p_df = full_df[full_df['Player'] == sel_player].copy()
-
-    # التابات
-    tabs = st.tabs(["🔥 Player Heatmap", "🏃‍♂️ Player Actions", "👥 Team Heatmap", "🛡️ Team Defense"])
     
-    with tabs[0]: # Player Heatmap
-        pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw()
-        draw_premium_kde_heatmap(p_df, ax)
+    # تعريف التابات
+    tab1, tab2, tab3, tab4 = st.tabs(["👤 تحليل اللاعب", "👥 الفريق (Heatmap)", "⚽ الهجوم", "🛡️ الدفاع"])
+    
+    # --- 3. محتوى التابات (استخدام subplots لضمان الاستقلالية) ---
+    
+    with tab1: # تحليل اللاعب (هجوم + دفاع + مكس)
+        st.subheader(f"تحليل اللاعب: {sel_player}")
+        cols = st.columns(3)
+        for i, (title, color, action_filter) in enumerate([
+            ("هجومي", "blue", "Pass|Shot|Cross"), 
+            ("دفاعي", "red", "Tackle|Clearance|Duel"), 
+            ("شامل (Mix)", "green", ".*")
+        ]):
+            with cols[i]:
+                st.write(f"**{title}**")
+                fig, ax = plt.subplots(figsize=(6, 4))
+                pitch = Pitch(pitch_type='statsbomb')
+                pitch.draw(ax=ax)
+                df_sub = p_df[p_df['Action'].str.contains(action_filter, case=False, na=False)]
+                if title == "شامل (Mix)":
+                    sns.kdeplot(x=df_sub.x_scaled, y=df_sub.y_scaled, fill=True, cmap='viridis', ax=ax)
+                else:
+                    pitch.scatter(df_sub.x_scaled, df_sub.y_scaled, ax=ax, color=color)
+                st.pyplot(fig)
+
+    with tab2: # الفريق
+        st.write("### خريطة الفريق الحرارية")
+        fig, ax = plt.subplots(figsize=(10, 7))
+        Pitch(pitch_type='statsbomb').draw(ax=ax)
+        sns.kdeplot(x=full_df.x_scaled, y=full_df.y_scaled, fill=True, cmap='magma', ax=ax)
         st.pyplot(fig)
 
-    with tabs[2]: # Team Heatmap
-        pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw()
-        draw_premium_kde_heatmap(full_df, ax)
+    with tab3: # الهجوم
+        st.write("### الأكشن الهجومي")
+        fig, ax = plt.subplots(figsize=(10, 7))
+        Pitch(pitch_type='statsbomb').draw(ax=ax)
+        df_atk = full_df[full_df['Action'].str.contains('Pass|Shot|Cross|Goal', case=False, na=False)]
+        for _, r in df_atk.iterrows():
+            plt.arrow(r.x_scaled, r.y_scaled, r.x_end_scaled-r.x_scaled, r.y_end_scaled-r.y_scaled, color='blue', alpha=0.3)
         st.pyplot(fig)
 
-    with tabs[3]: # Team Defense
-        pitch = Pitch(pitch_type='statsbomb')
-        fig, ax = pitch.draw()
-        def_df = full_df[full_df['Action'].str.contains('Tackle|Clearance', case=False, na=False)]
-        pitch.scatter(def_df.x_scaled, def_df.y_scaled, ax=ax, color='red', marker='x')
+    with tab4: # الدفاع
+        st.write("### الأكشن الدفاعي")
+        fig, ax = plt.subplots(figsize=(10, 7))
+        Pitch(pitch_type='statsbomb').draw(ax=ax)
+        df_def = full_df[full_df['Action'].str.contains('Tackle|Clearance|Duel', case=False, na=False)]
+        plt.scatter(df_def.x_scaled, df_def.y_scaled, color='red', marker='x')
         st.pyplot(fig)
+
 else:
-    st.info("👋 يرجى رفع ملف CSV.")
+    st.info("👋 يرجى رفع ملف الـ CSV.")
