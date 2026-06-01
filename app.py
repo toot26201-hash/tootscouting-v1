@@ -90,15 +90,15 @@ if uploaded_file is not None:
                 elif act in ['Tackle', 'extraction']:
                     pitch.scatter(row['x_scaled'], row['y_scaled'], ax=ax2, color='purple', marker='d', s=150, zorder=3)
         
-        # إضافة دليل الرموز (Legend)
+        # إضافة دليل الرموز (مع تغيير رمز الـ Pressing إلى + ليتوافق مع matplotlib)
         legend_elements = [
             Line2D([0], [0], color='blue', lw=2, label='Corner'),
             Line2D([0], [0], color='orange', lw=2, label='Cross'),
             Line2D([0], [0], color='#2ecc71', marker='>', linestyle='None', label='Pass Success'),
             Line2D([0], [0], color='gold', marker='*', linestyle='None', label='Goal'),
             Line2D([0], [0], color='red', marker='x', linestyle='None', label='Foul'),
-            Line2D([0], [0], color='#2ecc71', marker='#', linestyle='None', label='Pressing'),
-            Line2D([0], [0], color='purple', marker='d', linestyle='None', label='Tackle')
+            Line2D([0], [0], color='#2ecc71', marker='+', linestyle='None', label='Pressing (#)'),
+            Line2D([0], [0], color='purple', marker='d', linestyle='None', label='Tackle/Extraction')
         ]
         ax2.legend(handles=legend_elements, loc='upper left', bbox_to_anchor=(1, 1), fontsize='small')
         st.pyplot(fig2)
