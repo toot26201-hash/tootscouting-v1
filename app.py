@@ -58,7 +58,7 @@ if uploaded_file is not None:
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
         # -------------------------------------------------------------
-        # 3. Tactical Classification Engine (Fixed Syntax)
+        # 3. Tactical Classification Engine
         # -------------------------------------------------------------
         conditions = [
             # --- Offensive ---
@@ -72,35 +72,4 @@ if uploaded_file is not None:
             # --- Defensive ---
             valid_df['Action_raw'].str.contains('Tackle|تدخل|افتكاك', case=False) | valid_df['Tags'].str.contains('tackle', case=False),
             valid_df['Action_raw'].str.contains('Clearance|تشتيت', case=False) | valid_df['Tags'].str.contains('clearance', case=False),
-            valid_df['Action_raw'].str.contains('Air|هوائي|هواء', case=False) | valid_df['Tags'].str.contains('aerial|air', case=False),
-            valid_df['Action_raw'].str.contains('Ground|أرضي|ارضي', case=False) | valid_df['Tags'].str.contains('ground', case=False),
-            valid_df['Action_raw'].str.contains('Foul|فاول|خطأ|خطا', case=False) | valid_df['Tags'].str.contains('foul', case=False),
-            valid_df['Action_raw'].str.contains('Counter|ضغط عكسي|عكسي', case=False) | valid_df['Tags'].str.contains('counterpress|press', case=False),
-            
-            # --- General Passes ---
-            (valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric()) & (valid_df['prog_distance'] >= 12),
-            valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric()
-        ]
-        
-        choices = [
-            "⚽ Goal", "👟 Shot", "🚩 Corner", "📐 Cross", 
-            "✨ Dribble", "⚡ Through Ball", "🛡️ Tackle", "💥 Clearance", 
-            "🪂 Aerial Duel", "🪵 Ground Duel", "⚠️ Foul", "⏱️ Counterpress",
-            "🚀 Progressive Pass", "🔄 Normal Pass"
-        ]
-        
-        valid_df['Clean_Action'] = np.select(conditions, choices, default="📋 Other Action")
-
-        # -------------------------------------------------------------
-        # 4. Sidebar Filters (English UI)
-        # -------------------------------------------------------------
-        st.sidebar.markdown("---")
-        players_list = ["All Players"] + list(valid_df['Player'].dropna().unique())
-        selected_player = st.sidebar.selectbox("👤 FILTER BY PLAYER:", players_list)
-            
-        temp_df = valid_df.copy()
-        if selected_player != "All Players":
-            temp_df = temp_df[temp_df['Player'] == selected_player]
-
-        # Tactical Categories
-        attack_categories =
+            valid_df['Action_raw'].str.contains('Air|هوائي|هواء', case=False)
