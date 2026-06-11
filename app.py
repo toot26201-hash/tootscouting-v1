@@ -110,4 +110,78 @@ if uploaded_file is not None:
         st.subheader("🏟️ خريطة الفاعلية التكتيكية")
         
         fig, ax = plt.subplots(figsize=(12, 8))
-        pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7
+        pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
+        pitch.draw(ax=ax)
+        fig.patch.set_facecolor('#1a1a1a')
+        
+        if not filtered_df.empty:
+            movement_labels = [
+                "تمريرة عادية (Normal Pass)", 
+                "تمريرة تقديمية (Progressive Pass)", 
+                "ثرو باص (Through Ball)", 
+                "عرضية (Cross)", 
+                "كورنر (Corner)"
+            ]
+            
+            arrows_df = filtered_df[filtered_df['Clean_Action'].isin(movement_labels)]
+            dots_df = filtered_df[~filtered_df['Clean_Action'].isin(movement_labels)]
+            
+            # 1. رسم الأسهم (التمريرات، العرضيات، الكورنرات)
+            if not arrows_df.empty:
+                for act in arrows_df['Clean_Action'].unique():
+                    sub_arrow = arrows_df[arrows_df['Clean_Action'] == act]
+                    
+                    if "Normal" in act: color = '#00ffcc'
+                    elif "Progressive" in act: color = '#ff9900'
+                    elif "Through" in act: color = '#cc00ff'
+                    elif "Cross" in act: color = '#ffff00'
+                    else: color = '#00f0ff'
+                    
+                    pitch.arrows(
+                        sub_arrow['x_scaled'], sub_arrow['y_scaled'], 
+                        sub_arrow['x2_scaled'], sub_arrow['y2_scaled'], 
+                        width=2, headwidth=3, headlength=3, 
+                        color=color, alpha=0.8, ax=ax
+                    )
+                    pitch.scatter(
+                        sub_arrow['x_scaled'], sub_arrow['y_scaled'], 
+                        color=color, s=40, edgecolors='#ffffff', zorder=3, ax=ax
+                    )
+            
+            # 2. رسم النقاط الثابتة (التسديدات والأهداف) - تم تبسيط الأسطر تماماً هنا لمنع القطع
+            if not dots_df.empty:
+                for idx, row in dots_df.iterrows():
+                    if "Goal" in row['Clean_Action']:
+                        m_color = '#00ff00'
+                        m_style = '*'
+                        m_size = 250
+                    else:
+                        m_color = '#ff3366'
+                        m_style = 'o'
+                        m_size = 120
+                        
+                    pitch.scatter(
+                        row['x_scaled'], 
+                        row['y_scaled'], 
+                        color=m_color, 
+                        s=m_size, 
+                        marker=m_style, 
+                        edgecolors='#ffffff', 
+                        zorder=4, 
+                        ax=ax
+                    )
+            
+            st.pyplot(fig)
+            st.success(f"تم عرض {len(filtered_df)} حدث بنجاح على الملعب بناءً على الفلاتر.")
+            plt.close(fig)
+            
+        else:
+            st.pyplot(fig)
+            st.warning("الملعب فارغ حالياً، يرجى اختيار مسمى أكشن واحد على الأقل ليتم رسمه.")
+            plt.close(fig)
+
+    else:
+        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
+
+else:
+    st.info("يرجى رفع ملف البيانات لبدء التحليل الهجومي المتقدم.")
