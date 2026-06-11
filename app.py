@@ -41,121 +41,142 @@ if uploaded_file is not None:
         df['y2_scaled'] = df['y2'] * 80
         
         # -------------------------------------------------------------
-        # 4. معالجة البيانات الصالحة التي تحتوي على إحداثيات
+        # 4. معالجة البيانات الصالحة
         # -------------------------------------------------------------
-        # نأخذ فقط الصفوف التي تحتوي على إحداثيات بداية صحيحة (ليست فارغة) لضمان الرسم
         valid_df = df[df['x_scaled'].notna() & df['y_scaled'].notna()].copy()
-        
         valid_df['Action'] = valid_df['Action'].astype(str).str.strip()
         valid_df['Tags'] = valid_df['Tags'].fillna('').astype(str)
         
-        # حساب المسافة التقدمية للأمام
+        # حساب المسافة التقدمية للأمام (الفرق على محور X)
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
         # -------------------------------------------------------------
-        # 5. القوائم المنسدلة الذكية (تعتمد على المتاح في ملفك)
+        # 5. القوائم المنسدلة الكاملة (كل طلباتك هنا)
         # -------------------------------------------------------------
         st.subheader("🎯 فلاتر التحليل الهجومي المتقدم")
-        
         col1, col2 = st.columns(2)
         
         with col1:
-            # القائمة الأساسية
-            main_options = [
+            attack_options = [
                 "كل التمريرات والأحداث",
+                "تمريرة عادية (Normal Pass)",
                 "تمريرة تقديمية (Progressive Pass)",
                 "ثرو باص (Through Ball)",
-                "أكشن هجومي مخصص (من الملف)"
+                "عرضية (Cross)",
+                "كورنر (Corner)",
+                "تسديدة (Shot)",
+                "هدف (Goal)"
             ]
-            selected_main = st.selectbox("اختر نوع التحليل الرئيسي:", main_options)
+            selected_action = st.selectbox("اختر الأكشن الهجومي بدقة:", attack_options)
             
         with col2:
             players_list = ["كل اللاعبين"] + list(valid_df['Player'].dropna().unique())
             selected_player = st.selectbox("فلترة بحسب اللاعب:", players_list)
 
         # -------------------------------------------------------------
-        # 6. تطبيق الفلترة الديناميكية لضمان عدم خروج جدول فارغ
+        # 6. تطبيق الفلترة الذكية بناءً على اختيارك
         # -------------------------------------------------------------
         filtered_df = valid_df.copy()
         
         if selected_player != "كل اللاعبين":
             filtered_df = filtered_df[filtered_df['Player'] == selected_player]
 
-        color_theme = '#00ffcc'  # اللون الافتراضي الفسفوري
+        # تحديد اللون الافتراضي (فسفوري)
+        color_theme = '#00ffcc'
         
-        # تخصيص الفلترة بناءً على الاختيار
-        if selected_main == "كل التمريرات والأحداث":
-            # يعرض لك كل ما يحتوي على إحداثيات في الملف مباشرة لضمان ظهور الملعب فوراً
-            color_theme = '#00ffcc'
+        # شروط الفلترة لكل خيار
+        if selected_action == "تمريرة عادية (Normal Pass)":
+            filtered_df = filtered_df[
+                filtered_df['Action'].str.contains('Pass', case=False) & 
+                ~filtered_df['Action'].str.contains('Cross|Corner', case=False) &
+                ~filtered_df['Tags'].str.contains('through|key', case=False) &
+                (filtered_df['prog_distance'] < 12)
+            ]
+            color_theme = '#00ffcc' # فسفوري
             
-        elif selected_main == "تمريرة تقديمية (Progressive Pass)":
-            # فلترة برمجية بحتة تعتمد على المسافة المقطوعة للأمام (أكبر من 10 أمتار)
-            filtered_df = filtered_df[filtered_df['prog_distance'] >= 10]
-            color_theme = '#ff9900'
+        elif selected_action == "تمريرة تقديمية (Progressive Pass)":
+            filtered_df = filtered_df[
+                filtered_df['Action'].str.contains('Pass', case=False) & 
+                ~filtered_df['Action'].str.contains('Corner', case=False) &
+                (filtered_df['prog_distance'] >= 12)
+            ]
+            color_theme = '#ff9900' # برتقالي ناري
             
-        elif selected_main == "ثرو باص (Through Ball)":
+        elif selected_action == "ثرو باص (Through Ball)":
             filtered_df = filtered_df[
                 filtered_df['Action'].str.contains('Through|Key|ثرو', case=False) | 
                 filtered_df['Tags'].str.contains('through|key|Behind', case=False)
             ]
-            color_theme = '#cc00ff'
+            color_theme = '#cc00ff' # بنفسجي
             
-        elif selected_main == "أكشن هجومي مخصص (من الملف)":
-            # هنا السحر! الكود يقرأ الكلمات الفعلية الموجودة في عمود Action في ملفك ويخليك تختار منها
-            unique_actions = list(filtered_df['Action'].unique())
-            with col1:
-                selected_custom_action = st.selectbox("اختر الأكشن الفعلي الموجود بملفك:", unique_actions)
-            filtered_df = filtered_df[filtered_df['Action'] == selected_custom_action]
-            color_theme = '#ffff00'
+        elif selected_action == "عرضية (Cross)":
+            filtered_df = filtered_df[filtered_df['Action'].str.contains('Cross|عرضية', case=False)]
+            color_theme = '#ffff00' # أصفر للعرضيات
+            
+        elif selected_action == "كورنر (Corner)":
+            filtered_df = filtered_df[filtered_df['Action'].str.contains('Corner|كورنر|ركنية', case=False)]
+            color_theme = '#00f0ff' # أزرق سماوي
+            
+        elif selected_action == "تسديدة (Shot)":
+            filtered_df = filtered_df[
+                filtered_df['Action'].str.contains('Shot|تسديد|شوط', case=False) & 
+                ~filtered_df['Tags'].str.contains('goal|Goal', case=False) &
+                ~filtered_df['Action'].str.contains('Goal', case=False)
+            ]
+            color_theme = '#ff3366' # أحمر للتسديدات
+            
+        elif selected_action == "هدف (Goal)":
+            filtered_df = filtered_df[
+                filtered_df['Action'].str.contains('Goal|هدف', case=False) | 
+                filtered_df['Tags'].str.contains('goal', case=False)
+            ]
+            color_theme = '#00ff00' # أخضر صريح للأهداف
 
         # -------------------------------------------------------------
         # 7. رسم الملعب التكتيكي (يُرسم دائماً وتظهر الأحداث فوقه)
         # -------------------------------------------------------------
-        st.subheader(f"🏟️ خريطة الفاعلية")
+        st.subheader(f"🏟️ خريطة الفاعلية التكتيكية: {selected_action}")
         
-        # إنشاء الرسم البياني للملعب (يتم إنشاؤه في كل الأحوال حتى لو البيانات فارغة)
+        # توليد خطوط الملعب بشكل ثابت وصحيح أولاً لضمان الظهور
+        fig, ax = plt.subplots(figsize=(12, 8))
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
-        fig, ax = pitch.draw(figsize=(12, 8))
+        pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
         
         if not filtered_df.empty:
-            # التحقق من وجود إحداثيات نهاية لرسم الأسهم (مثل التمريرات والعرضيات)
-            # إذا كانت إحداثيات النهاية موجودة وتختلف عن البداية، نرسم سهماً
-            has_end = filtered_df['x2_scaled'].notna() & filtered_df['y2_scaled'].notna() & (filtered_df['x2_scaled'] != 0)
+            # نحدد الأحداث التي تحتاج سهم حركة (تمريرات، عرضيات، كورنر)
+            movement_actions = ["كل التمريرات", "Normal Pass", "Progressive Pass", "Through Ball", "Cross", "Corner"]
+            is_movement = any(x in selected_action for x in movement_actions) or (selected_action == "كل التمريرات والأحداث")
             
-            arrows_df = filtered_df[has_end]
-            dots_df = filtered_df[~has_end]
-            
-            # 1. رسم الأسهم للأحداث المتحركة (تمريرات، عرضيات)
-            if not arrows_df.empty:
-                pitch.arrows(
-                    arrows_df['x_scaled'], arrows_df['y_scaled'],
-                    arrows_df['x2_scaled'], arrows_df['y2_scaled'],
-                    width=2, headwidth=3, headlength=3,
-                    color=color_theme, alpha=0.8, ax=ax
-                )
-                pitch.scatter(
-                    arrows_df['x_scaled'], arrows_df['y_scaled'],
-                    color=color_theme, s=40, edgecolors='#ffffff', zorder=3, ax=ax
-                )
-            
-            # 2. رسم النقاط الثابتة (تسديدات، أهداف، أحداث بدون إحداثيات نهاية)
-            if not dots_df.empty:
-                pitch.scatter(
-                    dots_df['x_scaled'], dots_df['y_scaled'],
-                    color='#ff3366', s=100, marker='o', edgecolors='#ffffff', zorder=4, ax=ax
-                )
+            if is_movement:
+                # التحقق من وجود إحداثيات نهاية صالحة لرسم السهم
+                has_end = filtered_df['x2_scaled'].notna() & filtered_df['y2_scaled'].notna() & (filtered_df['x2_scaled'] != 0)
+                arrows_df = filtered_df[has_end]
+                dots_df = filtered_df[~has_end]
                 
-            st.pyplot(fig)
-            st.success(f"تم عرض {len(filtered_df)} حدث على الملعب بنجاح.")
-            
-        else:
-            # في حال كانت الفلترة فارغة، يُرسم الملعب فارغاً مع رسالة تحذيرية بدلاً من الاختفاء
-            st.pyplot(fig)
-            st.warning(f"الملعب معروض بالأعلى، لكن لا توجد أحداث مطابقة للفلتر الحالي: [{selected_main}] لهذا اللاعب.")
-
-    else:
-        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
-
-else:
-    st.info("يرجى رفع ملف البيانات لبدء التحليل الهجومي.")
+                # رسم الأسهم للتمريرات والعرضيات
+                if not arrows_df.empty:
+                    pitch.arrows(
+                        arrows_df['x_scaled'], arrows_df['y_scaled'],
+                        arrows_df['x2_scaled'], arrows_df['y2_scaled'],
+                        width=2, headwidth=3, headlength=3,
+                        color=color_theme, alpha=0.8, ax=ax
+                    )
+                    pitch.scatter(
+                        arrows_df['x_scaled'], arrows_df['y_scaled'],
+                        color=color_theme, s=40, edgecolors='#ffffff', zorder=3, ax=ax
+                    )
+                
+                # إذا كان هناك أحداث حركة لكن بدون إحداثيات نهاية بالملف
+                if not dots_df.empty:
+                    pitch.scatter(
+                        dots_df['x_scaled'], dots_df['y_scaled'],
+                        color=color_theme, s=60, edgecolors='#ffffff', zorder=3, ax=ax
+                    )
+            else:
+                # للتسديدات والأهداف: رسم مكان الحدث بشكل مميز وثابت
+                marker_type = '*' if "Goal" in selected_action else 'o'
+                size_type = 200 if "Goal" in selected_action else 100
+                
+                pitch.scatter(
+                    filtered_df['x_scaled'], filtered_df
