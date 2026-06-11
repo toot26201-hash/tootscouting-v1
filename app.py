@@ -9,7 +9,6 @@ st.set_page_config(layout="wide")
 st.title("TootScouting - Advanced Match Analysis")
 
 # 1. Pitch Setup
-st.subheader("🏟️ Tactical Activity Map")
 fig, ax = plt.subplots(figsize=(12, 8))
 pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
 pitch.draw(ax=ax)
@@ -32,24 +31,20 @@ if uploaded_file is not None:
         valid_df = df.dropna(subset=['x_scaled', 'y_scaled']).copy()
         valid_df['Action_raw'] = valid_df['Action'].astype(str).str.strip()
         
-        # 3. Classification Engine (شامل الـ Aerial Duel)
+        # 3. Classification Engine
+        # هنا أضفنا البحث عن Aerial لضمان ظهوره
         conds = [
             valid_df['Action_raw'].str.contains('Goal|هدف', case=False),
             valid_df['Action_raw'].str.contains('Shot|تسديد', case=False),
-            valid_df['Action_raw'].str.contains('Aerial|Air|هوائي|هواء', case=False),
-            valid_df['Action_raw'].str.contains('Clearance|تشتيت|extraction', case=False),
+            valid_df['Action_raw'].str.contains('Aerial|Air|هوائي', case=False),
+            valid_df['Action_raw'].str.contains('Clearance|تشتيت', case=False),
             valid_df['Action_raw'].str.contains('Tackle|تدخل', case=False),
             valid_df['Action_raw'].str.contains('Counter|counter pressing', case=False)
         ]
         choices = ["Goal", "Shot", "Aerial Duel", "Clearance", "Tackle", "Counterpress"]
         valid_df['Clean_Action'] = np.select(conds, choices, default="Other")
 
-        # 4. Filters
-        players = ["All Players"] + list(valid_df['Player'].unique())
-        selected_player = st.sidebar.selectbox("👤 PLAYER:", players)
-        temp_df = valid_df if selected_player == "All Players" else valid_df[valid_df['Player'] == selected_player]
-        
-        # 5. Visualization with Legend
+        # 4. Visualization & Legend
         fig, ax = plt.subplots(figsize=(12, 9))
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
@@ -62,17 +57,16 @@ if uploaded_file is not None:
         
         legend_elements = []
         for action in choices:
-            subset = temp_df[temp_df['Clean_Action'] == action]
+            subset = valid_df[valid_df['Clean_Action'] == action]
             if not subset.empty:
                 pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=colors[action], 
                               marker=markers[action], s=150, ax=ax, label=action)
                 legend_elements.append(Line2D([0], [0], marker=markers[action], color='none', 
                                             markerfacecolor=colors[action], label=action, markersize=12))
 
-        if legend_elements:
-            ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), 
-                      ncol=6, facecolor='#222222', labelcolor='white', fontsize=10)
-            
+        ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), 
+                  ncol=6, facecolor='#222222', labelcolor='white', fontsize=10)
+        
         plot_placeholder.pyplot(fig)
-        st.success(f"Generated Analysis for {selected_player}")
+        st.success("Analysis Generated Successfully!")
         plt.close(fig)
