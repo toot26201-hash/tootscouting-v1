@@ -58,9 +58,9 @@ if uploaded_file is not None:
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
         # -------------------------------------------------------------
-        # 3. Tactical Classification Engine (Fully Cleaned & Checked)
+        # 3. New Tactical Classification Engine (Refreshed to Bypass Cache)
         # -------------------------------------------------------------
-        conditions = [
+        tactical_conditions = [
             valid_df['Action_raw'].str.contains('Goal|هدف', case=False) | valid_df['Tags'].str.contains('goal', case=False),
             valid_df['Action_raw'].str.contains('Shot|تسديد|شوط', case=False),
             valid_df['Action_raw'].str.contains('Corner|كورنر|ركنية', case=False) | valid_df['Tags'].str.contains('corner', case=False),
@@ -71,6 +71,4 @@ if uploaded_file is not None:
             valid_df['Action_raw'].str.contains('Clearance|تشتيت', case=False) | valid_df['Tags'].str.contains('clearance', case=False),
             valid_df['Action_raw'].str.contains('Air|هوائي|هواء', case=False) | valid_df['Tags'].str.contains('aerial|air', case=False),
             valid_df['Action_raw'].str.contains('Ground|أرضي|ارضي', case=False) | valid_df['Tags'].str.contains('ground', case=False),
-            valid_df['Action_raw'].str.contains('Foul|فاول|خطأ|خطا', case=False) | valid_df['Tags'].str.contains('foul', case=False),
-            valid_df['Action_raw'].str.contains('Counter|ضغط عكسي|عكسي', case=False) | valid_df['Tags'].str.contains('counterpress|press', case=False),
-            (valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.
+            valid_df['Action_raw'].str.contains
