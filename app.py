@@ -7,21 +7,20 @@ from mplsoccer import Pitch
 st.set_page_config(layout="wide")
 st.title("TootScouting - Advanced Match Analysis")
 
-# 1. رسم الملعب فوراً (خارج أي شرط لضمان ظهوره بمجرد فتح التطبيق)
-st.subheader("🏟️ خريطة الفاعلية الشاملة")
+# 1. رسم الملعب فوراً عند فتح التطبيق
+st.subheader("🏟️ خريطة الفاعلية التكتيكية المتقدمة")
 
 fig, ax = plt.subplots(figsize=(12, 8))
 pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
 pitch.draw(ax=ax)
 fig.patch.set_facecolor('#1a1a1a')
 
-# إنشاء مساحة عرض ثابتة للملعب في Streamlit
 plot_placeholder = st.empty()
 plot_placeholder.pyplot(fig)
 plt.close(fig)
 
-# 2. رفع ملف البيانات (CSV أو Excel)
-st.sidebar.header("📁 تحميل البيانات")
+# 2. القائمة الجانبية لرفع الملف والفلاتر
+st.sidebar.header("📁 تحميل البيانات والتحليل")
 uploaded_file = st.sidebar.file_uploader("قم برفع ملف البيانات (Excel أو CSV)", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
@@ -57,64 +56,89 @@ if uploaded_file is not None:
         
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
-        # محرك التصنيف التكتيكي
+        # -------------------------------------------------------------
+        # 3. محرك التصنيف التكتيكي المطور والموسع
+        # -------------------------------------------------------------
         conditions = [
+            # --- الهجوم الفارق ---
             valid_df['Action_raw'].str.contains('Goal|هدف', case=False) | valid_df['Tags'].str.contains('goal', case=False),
             valid_df['Action_raw'].str.contains('Shot|تسديد|شوط', case=False),
             valid_df['Action_raw'].str.contains('Corner|كورنر|ركنية', case=False) | valid_df['Tags'].str.contains('corner', case=False),
             valid_df['Action_raw'].str.contains('Cross|عرضية', case=False) | valid_df['Tags'].str.contains('cross', case=False),
+            valid_df['Action_raw'].str.contains('Dribble|مرواغة|مراوغة|دريبليج', case=False) | valid_df['Tags'].str.contains('dribble', case=False),
             valid_df['Action_raw'].str.contains('Through|Key|ثرو', case=False) | valid_df['Tags'].str.contains('through|key|Behind', case=False),
-            valid_df['Action_raw'].str.contains('Tackle|افتكاك|تاكل', case=False) | valid_df['Tags'].str.contains('tackle', case=False),
-            valid_df['Action_raw'].str.contains('Intercept|قطع|اعتراض', case=False) | valid_df['Tags'].str.contains('intercept', case=False),
+            
+            # --- الدفاع والتلاحم ---
+            valid_df['Action_raw'].str.contains('Tackle|تدخل|افتكاك', case=False) | valid_df['Tags'].str.contains('tackle', case=False),
             valid_df['Action_raw'].str.contains('Clearance|تشتيت', case=False) | valid_df['Tags'].str.contains('clearance', case=False),
-            valid_df['Action_raw'].str.contains('Duel|صراع|التحام', case=False) | valid_df['Tags'].str.contains('duel', case=False),
+            valid_df['Action_raw'].str.contains('Air|هوائي|هواء', case=False) | valid_df['Tags'].str.contains('aerial|air', case=False),
+            valid_df['Action_raw'].str.contains('Ground|أرضي|ارضي', case=False) | valid_df['Tags'].str.contains('ground', case=False),
+            valid_df['Action_raw'].str.contains('Foul|فاول|خطأ|خطا', case=False) | valid_df['Tags'].str.contains('foul', case=False),
+            valid_df['Action_raw'].str.contains('Counter|ضغط عكسي|عكسي', case=False) | valid_df['Tags'].str.contains('counterpress|press', case=False),
+            
+            # --- التمريرات العامة ---
             (valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric()) & (valid_df['prog_distance'] >= 12),
             valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric()
         ]
         
         choices = [
-            "🎯 هدف (Goal)", "👟 تسديدة (Shot)", "🚩 كورنر (Corner)", "📐 عرضية (Cross)", 
-            "⚡ ثرو باص (Through Ball)", "🛡️ افتكاك كرة (Tackle)", "🛑 قطع كرة (Interception)", 
-            "💥 تشتيت (Clearance)", "⚔️ الالتحامات (Duels)", "🚀 تمريرة تقديمية (Progressive Pass)", 
-            "🔄 تمريرة عادية (Normal Pass)"
+            "⚽ هدف (Goal)", "👟 تسديدة (Shot)", "🚩 كورنر (Corner)", "📐 عرضية (Cross)", 
+            "✨ مراوغة (Dribble)", "⚡ ثرو باص (Through Ball)", "🛡️ تدخل (Tackle)", "💥 تشتيت (Clearance)", 
+            "🪂 صراع هوائي (Aerial Duel)", "🪵 صراع أرضي (Ground Duel)", "⚠️ فاول (Foul)", "⏱️ ضغط عكسي (Counterpress)",
+            "🚀 تمريرة تقديمية (Progressive Pass)", "🔄 تمريرة عادية (Normal Pass)"
         ]
         
         valid_df['Clean_Action'] = np.select(conditions, choices, default="📋 أحداث أخرى (Other)")
 
-        # الفلاتر (Multiselect)
-        st.subheader("🎯 لوحة الفلاتر التكتيكية (هجوم ودفاع)")
-        col1, col2 = st.columns(2)
-        
-        with col2:
-            players_list = ["كل اللاعبين"] + list(valid_df['Player'].dropna().unique())
-            selected_player = st.selectbox("فلترة بحسب اللاعب:", players_list)
+        # -------------------------------------------------------------
+        # 4. بناء القوائم المنفصلة (هجومية ودفاعية) في الـ Sidebar
+        # -------------------------------------------------------------
+        st.sidebar.markdown("---")
+        players_list = ["كل اللاعبين"] + list(valid_df['Player'].dropna().unique())
+        selected_player = st.sidebar.selectbox("👤 فلترة بحسب اللاعب:", players_list)
             
         temp_df = valid_df.copy()
         if selected_player != "كل اللاعبين":
             temp_df = temp_df[temp_df['Player'] == selected_player]
-            
-        with col1:
-            display_actions = list(temp_df['Clean_Action'].unique())
-            display_actions.sort()
-            selected_actions = st.multiselect("اختر الأكشنز المطلوبة:", options=display_actions, default=display_actions)
+
+        # المجموعات التكتيكية المحددة من قبلك
+        attack_categories = ["⚽ هدف (Goal)", "👟 تسديدة (Shot)", "🚩 كورنر (Corner)", "📐 عرضية (Cross)", "✨ مراوغة (Dribble)", "⚡ ثرو باص (Through Ball)", "🚀 تمريرة تقديمية (Progressive Pass)", "🔄 تمريرة عادية (Normal Pass)"]
+        defense_categories = ["🛡️ تدخل (Tackle)", "💥 تشتيت (Clearance)", "🪂 صراع هوائي (Aerial Duel)", "🪵 صراع أرضي (Ground Duel)", "⚠️ فاول (Foul)", "⏱️ ضغط عكسي (Counterpress)"]
+
+        # فرز الخيارات المتاحة فعلياً في الداتا لمنع ظهور خيارات فارغة
+        available_attack = [act for act in attack_categories if act in temp_df['Clean_Action'].unique()]
+        available_defense = [act for act in defense_categories if act in temp_df['Clean_Action'].unique()]
+
+        st.sidebar.markdown("### 🏹 الفلاتر الهجومية")
+        selected_attack = st.sidebar.multiselect("اختر الأكشنز الهجومية:", options=available_attack, default=available_attack)
+
+        st.sidebar.markdown("### 🧱 الفلاتر الدفاعية")
+        selected_defense = st.sidebar.multiselect("اختر الأكشنز الدفاعية:", options=available_defense, default=available_defense)
+
+        # دمج الاختيارات من القائمتين لتطبيق الفلترة النهائية
+        final_selected_actions = selected_attack + selected_defense
 
         # تطبيق الفلترة
-        if selected_actions:
-            filtered_df = temp_df[temp_df['Clean_Action'].isin(selected_actions)]
+        if final_selected_actions:
+            filtered_df = temp_df[temp_df['Clean_Action'].isin(final_selected_actions)]
         else:
             filtered_df = pd.DataFrame(columns=temp_df.columns)
 
-        # إعادة رسم الملعب وعمود البيانات فوقه وتحديث الـ Placeholder
+        # -------------------------------------------------------------
+        # 5. إعادة رسم الملعب وإسقاط التكتيك
+        # -------------------------------------------------------------
         fig, ax = plt.subplots(figsize=(12, 8))
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
         
         if not filtered_df.empty:
+            # الأحداث التي ترسم كحركة (أسهم)
             movement_labels = ["🔄 تمريرة عادية (Normal Pass)", "🚀 تمريرة تقديمية (Progressive Pass)", "⚡ ثرو باص (Through Ball)", "📐 عرضية (Cross)", "🚩 كورنر (Corner)"]
+            
             arrows_df = filtered_df[filtered_df['Clean_Action'].isin(movement_labels)]
             dots_df = filtered_df[~filtered_df['Clean_Action'].isin(movement_labels)]
             
-            # رسم الأسهم
+            # رسم التحركات (الأسهم)
             if not arrows_df.empty:
                 for act in arrows_df['Clean_Action'].unique():
                     sub_arrow = arrows_df[arrows_df['Clean_Action'] == act]
@@ -134,26 +158,30 @@ if uploaded_file is not None:
                     if not dot_plots.empty:
                         pitch.scatter(dot_plots['x_scaled'], dot_plots['y_scaled'], color=color, s=60, edgecolors='#ffffff', zorder=3, ax=ax)
             
-            # رسم النقاط والدفاع
+            # رسم الأحداث الثابتة والدفاعية برموز تكتيكية مخصصة
             if not dots_df.empty:
                 for idx, row in dots_df.iterrows():
                     act_name = row['Clean_Action']
-                    if "Goal" in act_name: m_color, m_style, m_size = '#00ff00', '*', 250
-                    elif "Shot" in act_name: m_color, m_style, m_size = '#ff3366', 'o', 120
-                    elif "Tackle" in act_name: m_color, m_style, m_size = '#ff00ff', 'X', 130
-                    elif "Interception" in act_name: m_color, m_style, m_size = '#3399ff', 'D', 110
-                    elif "Clearance" in act_name: m_color, m_style, m_size = '#ffffff', 's', 100
-                    else: m_color, m_style, m_size = '#ffff00', '^', 110
+                    if "Goal" in act_name: m_color, m_style, m_size = '#00ff00', '*', 260         # نجمة خضراء للهدف
+                    elif "Shot" in act_name: m_color, m_style, m_size = '#ff3366', 'o', 130         # نقطة حمراء للتسديدة
+                    elif "Dribble" in act_name: m_color, m_style, m_size = '#ffff00', 'P', 120      # علامة + صفراء للمراوغة
+                    elif "Tackle" in act_name: m_color, m_style, m_size = '#ff00ff', 'X', 130       # علامة X وردي للتدخل
+                    elif "Clearance" in act_name: m_color, m_style, m_size = '#ffffff', 's', 110    # مربع أبيض للتشتيت
+                    elif "Aerial" in act_name: m_color, m_style, m_size = '#3399ff', '^', 130       # مثلث أزرق للصراع الهوائي
+                    elif "Ground" in act_name: m_color, m_style, m_size = '#brown', 'v', 120        # مثلث مقلوب للصراع الأرضي
+                    elif "Foul" in act_name: m_color, m_style, m_size = '#ffcc00', 'd', 110         # معين برتقالي للفاول
+                    else: m_color, m_style, m_size = '#00ffcc', 'h', 120                            # شكل سداسي فسفوري للضغط العكسي
                         
                     pitch.scatter(row['x_scaled'], row['y_scaled'], color=m_color, s=m_size, marker=m_style, edgecolors='#1a1a1a', zorder=4, ax=ax)
             
-            # تحديث الملعب بالداتا الجديدة
+            # تحديث عرض الملعب بالداتا المطلوبة
             plot_placeholder.pyplot(fig)
-            st.success(f"تم عرض {len(filtered_df)} حدث تكتيكي بنجاح.")
+            st.success(f"📋 تم تصفية وعرض {len(filtered_df)} حدث (هجومي/دفاعي) للاعب المحدد.")
         else:
-            st.warning("تم تصفية البيانات ولم يتبقَ أحداث لعرضها بناءً على خياراتك الحالي.")
+            plot_placeholder.pyplot(fig)
+            st.warning("الملعب معروض بالأعلى، لكن يرجى اختيار أكشن واحد على الأقل من القوائم الجانبية لتبدأ البيانات في الظهور.")
         plt.close(fig)
     else:
-        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start). يرجى التأكد من أسماء الأعمدة بالملف.")
+        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
 else:
-    st.info("يرجى رفع ملف البيانات من القائمة الجانبية لبدء إسقاط الأحداث الهجومية والدفاعية.")
+    st.info("💡 الملعب جاهز؛ يرجى رفع ملف الإكسيل أو CSV من القائمة الجانبية لبدء الفلترة الهجومية والدفاعية المستقلة.")
