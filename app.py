@@ -18,7 +18,6 @@ plot_placeholder.pyplot(fig)
 plt.close(fig)
 
 # 2. Sidebar
-st.sidebar.header("📁 DATA LOAD & ANALYSIS")
 uploaded_file = st.sidebar.file_uploader("Upload Match Data (Excel or CSV)", type=["csv", "xlsx"])
 
 if uploaded_file is not None:
@@ -27,46 +26,39 @@ if uploaded_file is not None:
     df = df.rename(columns={'X Start': 'x1', 'Y Start': 'y1', 'X End': 'x2', 'Y End': 'y2'})
     
     if all(col in df.columns for col in ['x1', 'y1', 'x2', 'y2']):
-        df['x_scaled'], df['y_scaled'] = df['x1'] * 120, df['y1'] * 80
-        valid_df = df.dropna(subset=['x_scaled', 'y_scaled']).copy()
-        valid_df['Action_raw'] = valid_df['Action'].astype(str).str.strip()
+        df['x1'], df['y1'] = df['x1'] * 120, df['y1'] * 80
+        df['x2'], df['y2'] = df['x2'] * 120, df['y2'] * 80
         
-        # 3. Classification Engine
-        # هنا أضفنا البحث عن Aerial لضمان ظهوره
+        # التصنيف
         conds = [
-            valid_df['Action_raw'].str.contains('Goal|هدف', case=False),
-            valid_df['Action_raw'].str.contains('Shot|تسديد', case=False),
-            valid_df['Action_raw'].str.contains('Aerial|Air|هوائي', case=False),
-            valid_df['Action_raw'].str.contains('Clearance|تشتيت', case=False),
-            valid_df['Action_raw'].str.contains('Tackle|تدخل', case=False),
-            valid_df['Action_raw'].str.contains('Counter|counter pressing', case=False)
+            df['Action'].str.contains('Pass|تمرير', case=False),
+            df['Action'].str.contains('Aerial|Air|هوائي', case=False),
+            df['Action'].str.contains('Tackle|تدخل', case=False),
+            df['Action'].str.contains('Goal|Shot', case=False)
         ]
-        choices = ["Goal", "Shot", "Aerial Duel", "Clearance", "Tackle", "Counterpress"]
-        valid_df['Clean_Action'] = np.select(conds, choices, default="Other")
+        choices = ["Pass", "Aerial Duel", "Tackle", "Goal/Shot"]
+        df['Type'] = np.select(conds, choices, default="Other")
 
-        # 4. Visualization & Legend
+        # الرسم
         fig, ax = plt.subplots(figsize=(12, 9))
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
-        
-        # الألوان والرموز المحددة
-        colors = {"Goal": "#00ff00", "Shot": "#ff3366", "Aerial Duel": "#3399ff", 
-                  "Clearance": "#ffffff", "Tackle": "#ff00ff", "Counterpress": "#00ffcc"}
-        markers = {"Goal": "*", "Shot": "o", "Aerial Duel": "^", 
-                   "Clearance": "s", "Tackle": "X", "Counterpress": "h"}
-        
-        legend_elements = []
-        for action in choices:
-            subset = valid_df[valid_df['Clean_Action'] == action]
-            if not subset.empty:
-                pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=colors[action], 
-                              marker=markers[action], s=150, ax=ax, label=action)
-                legend_elements.append(Line2D([0], [0], marker=markers[action], color='none', 
-                                            markerfacecolor=colors[action], label=action, markersize=12))
 
-        ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), 
-                  ncol=6, facecolor='#222222', labelcolor='white', fontsize=10)
+        # 1. رسم التمريرات كأسهم
+        passes = df[df['Type'] == "Pass"]
+        pitch.arrows(passes['x1'], passes['y1'], passes['x2'], passes['y2'], 
+                     color='#00ffcc', width=2, headwidth=4, headlength=4, ax=ax, label="Pass")
         
+        # 2. رسم باقي الأكشن كنقط
+        others = df[df['Type'] != "Pass"]
+        colors = {"Aerial Duel": "#3399ff", "Tackle": "#ff00ff", "Goal/Shot": "#00ff00"}
+        markers = {"Aerial Duel": "^", "Tackle": "X", "Goal/Shot": "*"}
+        
+        for t in ["Aerial Duel", "Tackle", "Goal/Shot"]:
+            subset = others[others['Type'] == t]
+            pitch.scatter(subset['x1'], subset['y1'], color=colors.get(t, 'white'), 
+                          marker=markers.get(t, 'o'), s=150, ax=ax, label=t)
+
+        ax.legend(loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=4, facecolor='#222222', labelcolor='white')
         plot_placeholder.pyplot(fig)
-        st.success("Analysis Generated Successfully!")
         plt.close(fig)
