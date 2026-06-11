@@ -44,58 +44,106 @@ if uploaded_file is not None:
         df['x2_scaled'] = df['x2'] * 120
         df['y2_scaled'] = df['y2'] * 80
         
-        # معاينة البيانات في قائمة جانبية أو تبويب اختياري لتوفير مساحة
         with st.expander("معاينة جدول البيانات المُعدلة"):
-            st.write(df[['Player', 'Action', 'x_scaled', 'y_scaled', 'x2_scaled', 'y2_scaled']].head(10))
+            st.write(df[['Player', 'Action', 'Event Type', 'x_scaled', 'y_scaled']].head(10))
         
         # -------------------------------------------------------------
-        # 4. فلترة التمريرات وتجهيز رسم الملعب
+        # 4. تقسيم الفلاتر (القوائم المنسدلة للأحداث الهجومية والدفاعية)
         # -------------------------------------------------------------
-        st.subheader("📊 خريطة التمريرات (Pass Map)")
+        st.subheader("📊 فلاتر الخريطة التكتيكية")
         
-        # فلترة التمريرات الناجحة فقط والتي تحتوي على إحداثيات (حذف الـ None)
-        # ملاحظة: يمكنك تغيير كلمة 'Pass' حسب المسمى الموجود في عمود Event Type أو Action لديك
-        passes_df = df[df['x_scaled'].notna() & df['y_scaled'].notna()]
+        # فلترة البيانات التي تحتوي على إحداثيات صالحة فقط للرسم
+        valid_events_df = df[df['x_scaled'].notna() & df['y_scaled'].notna()]
         
-        # خيار إضافي: تصفية التمريرات بحسب اللاعب
-        players_list = ["الكل"] + list(passes_df['Player'].dropna().unique())
-        selected_player = st.selectbox("اختر اللاعب لتحليل تمريراته:", players_list)
+        # تحديد الكلمات الدلالية لتصنيف الأحداث (يمكنك تعديلها حسب مسميات ملفك)
+        attacking_keywords = ['Pass', 'Shot', 'Cross', 'Dribble', 'Kick-off', 'Corner', 'Free-kick']
+        defensive_keywords = ['Tackle', 'Interception', 'Clearance', 'Block', 'Recovery', 'Foul Committed', 'Challenge']
         
-        if selected_player != "الكل":
-            passes_df = passes_df[passes_df['Player'] == selected_player]
+        # استخراج الأحداث المتاحة فعلياً في الملف بناءً على التصنيف
+        available_actions = valid_events_df['Action'].dropna().unique()
+        
+        actual_attacking = [act for act in available_actions if any(key.lower() in act.lower() for key in attacking_keywords)]
+        actual_defensive = [act for act in available_actions if any(key.lower() in act.lower() for key in defensive_keywords)]
+        
+        # إنشاء الأعمدة في Streamlit لوضع القوائم المنسدلة بجانب بعضها
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            # قائمة اختيار نوع التحليل الرئيسي
+            analysis_type = st.radio("اختر نوع التحليل:", ["كل الأحداث", "أكشن هجومي ⚔️", "أكشن دفاعي 🛡️"])
+        
+        filtered_df = valid_events_df.copy()
+        color_theme = '#00ffcc' # اللون الافتراضي (الفسفوري)
+        
+        if analysis_type == "أكشن هجومي ⚔️":
+            with col2:
+                selected_attack = st.selectbox("اختر الأكشن الهجومي:", ["كل الهجوم"] + actual_attacking)
+            if selected_attack != "كل الهجوم":
+                filtered_df = filtered_df[filtered_df['Action'] == selected_attack]
+            else:
+                filtered_df = filtered_df[filtered_df['Action'].isin(actual_attacking)]
+            color_theme = '#00ffcc' # لون مميز للهجوم (أخضر/فسفوري)
             
-        if not passes_df.empty:
-            # رسم الملعب باستخدام mplsoccer
-            # التموضع العمودي أو الأفقي (هنا أفقي pitch_type='statsbomb' بأبعاد 120x80)
+        elif analysis_type == "أكشن دفاعي 🛡️":
+            with col3:
+                selected_defense = st.selectbox("اختر الأكشن الدفاعي:", ["كل الدفاع"] + actual_defensive)
+            if selected_defense != "كل الدفاع":
+                filtered_df = filtered_df[filtered_df['Action'] == selected_defense]
+            else:
+                filtered_df = filtered_df[filtered_df['Action'].isin(actual_defensive)]
+            color_theme = '#ff3366' # لون مميز للدفاع (أحمر/وردي)
+
+        # فلتر إضافي لاختيار اللاعب (اختياري لزيادة التحكم)
+        players_list = ["كل اللاعبين"] + list(filtered_df['Player'].dropna().unique())
+        selected_player = st.selectbox("فلترة بحسب اللاعب (اختياري):", players_list)
+        if selected_player != "كل اللاعبين":
+            filtered_df = filtered_df[filtered_df['Player'] == selected_player]
+
+        # -------------------------------------------------------------
+        # 5. رسم الملعب والأحداث المفلترة
+        # -------------------------------------------------------------
+        st.subheader(f"🏟️ خريطة الفاعلية: {analysis_type}")
+        
+        if not filtered_df.empty:
+            # رسم الملعب
             pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
             fig, ax = pitch.draw(figsize=(12, 8))
             
-            # رسم أسهم التarguments (من نقطة البداية إلى نقطة النهاية)
-            pitch.arrows(
-                passes_df['x_scaled'], passes_df['y_scaled'],
-                passes_df['x2_scaled'], passes_df['y2_scaled'],
-                width=2, headwidth=3, headlength=3,
-                color='#00ffcc', alpha=0.7, ax=ax, label='Passes'
-            )
+            # التحقق إذا كان الحدث له نقطة نهاية (مثل التمريرات والعرضيات) لرسم سهم
+            # أو مجرد نقطة ثابتة (مثل قطع الكرة أو التاكل) لرسم نقطة فقط
+            has_end_coords = filtered_df['x2_scaled'].notna() & filtered_df['y2_scaled'].notna() & (filtered_df['x_scaled'] != filtered_df['x2_scaled'])
             
-            # رسم نقاط بداية التمريرة
-            pitch.scatter(
-                passes_df['x_scaled'], passes_df['y_scaled'],
-                color='#00ffcc', s=40, edgecolors='#ffffff', zorder=3, ax=ax
-            )
+            arrows_df = filtered_df[has_end_coords]
+            scatters_df = filtered_df[~has_end_coords]
             
-            # تحسين شكل الرسم الخلفي
+            # 1. رسم الأحداث التي بها حركة (أسهم)
+            if not arrows_df.empty:
+                pitch.arrows(
+                    arrows_df['x_scaled'], arrows_df['y_scaled'],
+                    arrows_df['x2_scaled'], arrows_df['y2_scaled'],
+                    width=2, headwidth=3, headlength=3,
+                    color=color_theme, alpha=0.7, ax=ax
+                )
+                pitch.scatter(
+                    arrows_df['x_scaled'], arrows_df['y_scaled'],
+                    color=color_theme, s=40, edgecolors='#ffffff', zorder=3, ax=ax
+                )
+            
+            # 2. رسم الأحداث الثابتة (نقاط فقط مثل التاكل وقطع الكرة)
+            if not scatters_df.empty:
+                pitch.scatter(
+                    scatters_df['x_scaled'], scatters_df['y_scaled'],
+                    color=color_theme, s=80, edgecolors='#ffffff', marker='X' if analysis_type == "أكشن دفاعي 🛡️" else 'o', zorder=3, ax=ax
+                )
+            
             fig.patch.set_facecolor('#1a1a1a')
             st.pyplot(fig)
-            
-            st.caption(f"تم رسم {len(passes_df)} تمريرة بنجاح للاعبين المحددين.")
+            st.caption(f"تم عرض {len(filtered_df)} حدث على الخريطة بنجاح.")
         else:
-            st.warning("لا توجد تمريرات تحتوي على إحداثيات صالحة للرسم بناءً على الفلتر المختار.")
+            st.warning("لا توجد بيانات متاحة تطابق الفلاتر المحددة.")
 
     else:
         st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
-        st.write("الأعمدة المتوفرة في ملفك الحالي هي:")
-        st.write(list(df.columns))
 
 else:
     st.info("يرجى رفع ملف البيانات لبدء التحليل.")
