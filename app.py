@@ -29,20 +29,19 @@ if uploaded_file is not None:
     
     if all(col in df.columns for col in ['x1', 'y1', 'x2', 'y2']):
         df['x_scaled'], df['y_scaled'] = df['x1'] * 120, df['y1'] * 80
-        df['x2_scaled'], df['y2_scaled'] = df['x2'] * 120, df['y2'] * 80
         valid_df = df.dropna(subset=['x_scaled', 'y_scaled']).copy()
         valid_df['Action_raw'] = valid_df['Action'].astype(str).str.strip()
         
-        # 3. Enhanced Classification Engine
-        # هنا أضفنا "Aerial" كشرط أساسي
+        # 3. Classification Engine (شامل الـ Aerial Duel)
         conds = [
             valid_df['Action_raw'].str.contains('Goal|هدف', case=False),
             valid_df['Action_raw'].str.contains('Shot|تسديد', case=False),
-            valid_df['Action_raw'].str.contains('Aerial|Air|هوائي|هواء', case=False), # الالتحام الهوائي
+            valid_df['Action_raw'].str.contains('Aerial|Air|هوائي|هواء', case=False),
+            valid_df['Action_raw'].str.contains('Clearance|تشتيت|extraction', case=False),
             valid_df['Action_raw'].str.contains('Tackle|تدخل', case=False),
-            valid_df['Action_raw'].str.contains('Pass|تمرير', case=False)
+            valid_df['Action_raw'].str.contains('Counter|counter pressing', case=False)
         ]
-        choices = ["Goal", "Shot", "Aerial Duel", "Tackle", "Pass"]
+        choices = ["Goal", "Shot", "Aerial Duel", "Clearance", "Tackle", "Counterpress"]
         valid_df['Clean_Action'] = np.select(conds, choices, default="Other")
 
         # 4. Filters
@@ -50,14 +49,16 @@ if uploaded_file is not None:
         selected_player = st.sidebar.selectbox("👤 PLAYER:", players)
         temp_df = valid_df if selected_player == "All Players" else valid_df[valid_df['Player'] == selected_player]
         
-        # 5. Drawing with Aerial Duel
+        # 5. Visualization with Legend
         fig, ax = plt.subplots(figsize=(12, 9))
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
         
-        # تعريف الألوان والرموز بما فيها الـ Aerial Duel
-        colors = {"Goal": "#00ff00", "Shot": "#ff3366", "Aerial Duel": "#3399ff", "Tackle": "#ff00ff", "Pass": "#00ffcc"}
-        markers = {"Goal": "*", "Shot": "o", "Aerial Duel": "^", "Tackle": "X", "Pass": "h"}
+        # الألوان والرموز المحددة
+        colors = {"Goal": "#00ff00", "Shot": "#ff3366", "Aerial Duel": "#3399ff", 
+                  "Clearance": "#ffffff", "Tackle": "#ff00ff", "Counterpress": "#00ffcc"}
+        markers = {"Goal": "*", "Shot": "o", "Aerial Duel": "^", 
+                   "Clearance": "s", "Tackle": "X", "Counterpress": "h"}
         
         legend_elements = []
         for action in choices:
@@ -68,6 +69,10 @@ if uploaded_file is not None:
                 legend_elements.append(Line2D([0], [0], marker=markers[action], color='none', 
                                             markerfacecolor=colors[action], label=action, markersize=12))
 
-        ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=5, facecolor='#222222', labelcolor='white')
+        if legend_elements:
+            ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), 
+                      ncol=6, facecolor='#222222', labelcolor='white', fontsize=10)
+            
         plot_placeholder.pyplot(fig)
+        st.success(f"Generated Analysis for {selected_player}")
         plt.close(fig)
