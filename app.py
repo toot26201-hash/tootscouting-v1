@@ -54,24 +54,23 @@ if uploaded_file is not None:
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
         # -------------------------------------------------------------
-        # 3. Tactical Classification Engine (ONE-LINE SAFE METHOD)
+        # 3. Tactical Classification Engine (Append Method - 100% Anti-Error)
         # -------------------------------------------------------------
-        c1 = valid_df['Action_raw'].str.contains('Goal|هدف', case=False) | valid_df['Tags'].str.contains('goal', case=False)
-        c2 = valid_df['Action_raw'].str.contains('Shot|تسديد|شوط', case=False)
-        c3 = valid_df['Action_raw'].str.contains('Corner|كورنر|ركنية', case=False) | valid_df['Tags'].str.contains('corner', case=False)
-        c4 = valid_df['Action_raw'].str.contains('Cross|عرضية', case=False) | valid_df['Tags'].str.contains('cross', case=False)
-        c5 = valid_df['Action_raw'].str.contains('Dribble|مرواغة|مراوغة|دريبليج', case=False) | valid_df['Tags'].str.contains('dribble', case=False)
-        c6 = valid_df['Action_raw'].str.contains('Through|Key|ثرو', case=False) | valid_df['Tags'].str.contains('through|key|Behind', case=False)
-        c7 = valid_df['Action_raw'].str.contains('Tackle|تدخل|افتكاك', case=False) | valid_df['Tags'].str.contains('tackle', case=False)
-        c8 = valid_df['Action_raw'].str.contains('Clearance|تشتيت', case=False) | valid_df['Tags'].str.contains('clearance', case=False)
-        c9 = valid_df['Action_raw'].str.contains('Air|هوائي|هواء', case=False) | valid_df['Tags'].str.contains('aerial|air', case=False)
-        c10 = valid_df['Action_raw'].str.contains('Ground|أرضي|ارضي', case=False) | valid_df['Tags'].str.contains('ground', case=False)
-        c11 = valid_df['Action_raw'].str.contains('Foul|فاول|خطأ|خطا', case=False) | valid_df['Tags'].str.contains('foul', case=False)
-        c12 = valid_df['Action_raw'].str.contains('Counter|ضغط عكسي|عكسي', case=False) | valid_df['Tags'].str.contains('counterpress|press', case=False)
-        c13 = (valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric()) & (valid_df['prog_distance'] >= 12)
-        c14 = valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric()
-
-        tactical_conditions = [c1, c2, c3, c4, c5, c6, c7, c8, c9, c10, c11, c12, c13, c14]
+        tactical_conditions = []
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Goal|هدف', case=False) | valid_df['Tags'].str.contains('goal', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Shot|تسديد|شوط', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Corner|كورنر|ركنية', case=False) | valid_df['Tags'].str.contains('corner', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Cross|عرضية', case=False) | valid_df['Tags'].str.contains('cross', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Dribble|مرواغة|مراوغة|دريبليج', case=False) | valid_df['Tags'].str.contains('dribble', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Through|Key|ثرو', case=False) | valid_df['Tags'].str.contains('through|key|Behind', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Tackle|تدخل|افتكاك', case=False) | valid_df['Tags'].str.contains('tackle', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Clearance|تشتيت', case=False) | valid_df['Tags'].str.contains('clearance', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Air|هوائي|هواء', case=False) | valid_df['Tags'].str.contains('aerial|air', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Ground|أرضي|ارضي', case=False) | valid_df['Tags'].str.contains('ground', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Foul|فاول|خطأ|خطا', case=False) | valid_df['Tags'].str.contains('foul', case=False))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Counter|ضغط عكسي|عكسي', case=False) | valid_df['Tags'].str.contains('counterpress|press', case=False))
+        tactical_conditions.append((valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric()) & (valid_df['prog_distance'] >= 12))
+        tactical_conditions.append(valid_df['Action_raw'].str.contains('Pass|تمرير', case=False) | valid_df['Action_raw'].str.isnumeric())
         
         tactical_choices = ["⚽ Goal", "👟 Shot", "🚩 Corner", "📐 Cross", "✨ Dribble", "⚡ Through Ball", "🛡️ Tackle", "💥 Clearance", "🪂 Aerial Duel", "🪵 Ground Duel", "⚠️ Foul", "⏱️ Counterpress", "🚀 Progressive Pass", "🔄 Normal Pass"]
         
@@ -143,3 +142,42 @@ if uploaded_file is not None:
                         pitch.arrows(arrow_plots['x_scaled'], arrow_plots['y_scaled'], arrow_plots['x2_scaled'], arrow_plots['y2_scaled'], width=2, headwidth=3, headlength=3, color=color, alpha=0.8, zorder=3, ax=ax)
                         pitch.scatter(arrow_plots['x_scaled'], arrow_plots['y_scaled'], color=color, s=40, edgecolors='#ffffff', zorder=3, ax=ax)
                     if not dot_plots.empty:
+                        pitch.scatter(dot_plots['x_scaled'], dot_plots['y_scaled'], color=color, s=60, edgecolors='#ffffff', zorder=3, ax=ax)
+                        
+                    if name not in drawn_arrow_names:
+                        legend_elements.append(Line2D([0], [0], color=color, lw=2, label=name))
+                        drawn_arrow_names.add(name)
+
+            if not dots_df.empty:
+                drawn_dots_actions = set()
+                for idx, row in dots_df.iterrows():
+                    act_name = row['Clean_Action']
+                    if "Goal" in act_name: m_color, m_style, m_size, label_text = '#00ff00', '*', 260, "Goal"
+                    elif "Shot" in act_name: m_color, m_style, m_size, label_text = '#ff3366', 'o', 130, "Shot"
+                    elif "Dribble" in act_name: m_color, m_style, m_size, label_text = '#ffff00', 'P', 120, "Dribble"
+                    elif "Tackle" in act_name: m_color, m_style, m_size, label_text = '#ff00ff', 'X', 130, "Tackle"
+                    elif "Clearance" in act_name: m_color, m_style, m_size, label_text = '#ffffff', 's', 110, "Clearance"
+                    elif "Aerial" in act_name: m_color, m_style, m_size, label_text = '#3399ff', '^', 130, "Aerial Duel"
+                    elif "Ground" in act_name: m_color, m_style, m_size, label_text = '#8B4513', 'v', 120, "Ground Duel"
+                    elif "Foul" in act_name: m_color, m_style, m_size, label_text = '#ffcc00', 'd', 110, "Foul"
+                    else: m_color, m_style, m_size, label_text = '#00ffcc', 'h', 120, "Counterpress"
+                        
+                    pitch.scatter(row['x_scaled'], row['y_scaled'], color=m_color, s=m_size, marker=m_style, edgecolors='#1a1a1a', zorder=4, ax=ax)
+                    
+                    if label_text not in drawn_dots_actions:
+                        legend_elements.append(Line2D([0], [0], marker=m_style, color='none', markerfacecolor=m_color, markeredgecolor='#1a1a1a', markersize=10, label=label_text))
+                        drawn_dots_actions.add(label_text)
+
+            if legend_elements:
+                ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.02), ncol=4, fancybox=True, shadow=True, facecolor='#222222', edgecolor='#7c7c7c', labelcolor='#ffffff', fontsize=11)
+            
+            plot_placeholder.pyplot(fig)
+            st.success(f"📋 Generated report for ({player_display_name}) with {len(filtered_df)} actions successfully.")
+        else:
+            plot_placeholder.pyplot(fig)
+            st.warning("Pitch is empty. Please select at least one action from the sidebar.")
+        plt.close(fig)
+    else:
+        st.error("Error: Could not find coordinate columns ('X Start', 'Y Start').")
+else:
+    st.info("💡 Pitch ready. Please upload an Excel or CSV file from the sidebar to start analysis.")
