@@ -52,7 +52,7 @@ if uploaded_file is not None:
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
         # -------------------------------------------------------------
-        # 5. القوائم المنسدلة (تأكيد السطر السليم لفلتر اللاعبين)
+        # 5. القوائم المنسدلة
         # -------------------------------------------------------------
         st.subheader("🎯 فلاتر التحليل الهجومي المتقدم")
         
@@ -71,7 +71,7 @@ if uploaded_file is not None:
             selected_action = st.selectbox("اختر الأكشن الهجومي بدقة:", attack_options)
             
         with col2:
-            # تم تأكيد السطر كاملاً هنا لمنع الـ SyntaxError
+            # تم صياغة هذا السطر بالكامل في سطر واحد لمنع أي خطأ بناء جملة (SyntaxError)
             players_list = ["كل اللاعبين"] + list(valid_df['Player'].dropna().unique())
             selected_player = st.selectbox("فلترة بحسب اللاعب:", players_list)
 
@@ -131,4 +131,48 @@ if uploaded_file is not None:
             color_theme = '#00ff00'
 
         # -------------------------------------------------------------
-        # 7. رسم
+        # 7. رسم الملعب التكتيكي
+        # -------------------------------------------------------------
+        st.subheader(f"🏟️ خريطة فاعلية: {selected_action}")
+        
+        if not filtered_df.empty:
+            pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
+            fig, ax = pitch.draw(figsize=(12, 8))
+            
+            # تحديد التحركات التي تحتاج أسهم
+            movement_actions = ["Normal Pass", "Progressive Pass", "Through Ball", "Cross", "Corner"]
+            is_movement = any(x in selected_action for x in movement_actions)
+            
+            if is_movement:
+                pitch.arrows(
+                    filtered_df['x_scaled'], filtered_df['y_scaled'],
+                    filtered_df['x2_scaled'], filtered_df['y2_scaled'],
+                    width=2, headwidth=3, headlength=3,
+                    color=color_theme, alpha=0.8, ax=ax
+                )
+                pitch.scatter(
+                    filtered_df['x_scaled'], filtered_df['y_scaled'],
+                    color=color_theme, s=50, edgecolors='#ffffff', zorder=3, ax=ax
+                )
+            else:
+                # التسديدات والأهداف
+                marker_type = '*' if "Goal" in selected_action else 'o'
+                size_type = 200 if "Goal" in selected_action else 100
+                
+                pitch.scatter(
+                    filtered_df['x_scaled'], filtered_df['y_scaled'],
+                    color=color_theme, s=size_type, marker=marker_type, edgecolors='#ffffff', zorder=4, ax=ax
+                )
+            
+            fig.patch.set_facecolor('#1a1a1a')
+            st.pyplot(fig)
+            st.caption(f"تم العثور على {len(filtered_df)} حدث يطابق الفلتر الحالي.")
+            
+        else:
+            st.warning(f"لا توجد بيانات مسجلة في هذا الملف تحت تصنيف: {selected_action}")
+
+    else:
+        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
+
+else:
+    st.info("يرجى رفع ملف البيانات لبدء التحليل الهجومي.")
