@@ -115,4 +115,91 @@ if uploaded_file is not None:
         final_selected_actions = selected_attack + selected_defense
 
         if final_selected_actions:
-            filtered
+            filtered_df = temp_df[temp_df['Clean_Action'].isin(final_selected_actions)]
+        else:
+            filtered_df = pd.DataFrame(columns=temp_df.columns)
+
+        # -------------------------------------------------------------
+        # 5. إعادة رسم الملعب مع دليل الرموز واسم اللاعب الذهبي
+        # -------------------------------------------------------------
+        fig, ax = plt.subplots(figsize=(12, 9))
+        pitch.draw(ax=ax)
+        fig.patch.set_facecolor('#1a1a1a')
+        
+        legend_elements = []
+        drawn_arrow_names = set()
+        
+        # كتابة اسم اللاعب باللون الذهبي الخفيف أعلى اليمين
+        player_display_name = selected_player if selected_player != "كل اللاعبين" else "جميع اللاعبين"
+        ax.text(115, 5, player_display_name, color='#D4AF37', fontsize=18, 
+                fontweight='bold', ha='right', va='top', alpha=0.75,
+                bbox=dict(facecolor='#1a1a1a', alpha=0.4, edgecolor='none', pad=4))
+
+        if not filtered_df.empty:
+            movement_labels = ["🔄 تمريرة عادية (Normal Pass)", "🚀 تمريرة تقديمية (Progressive Pass)", "⚡ ثرو باص (Through Ball)", "📐 عرضية (Cross)", "🚩 كورنر (Corner)"]
+            
+            arrows_df = filtered_df[filtered_df['Clean_Action'].isin(movement_labels)]
+            dots_df = filtered_df[~filtered_df['Clean_Action'].isin(movement_labels)]
+            
+            # رسم التحركات (الأسهم)
+            if not arrows_df.empty:
+                for act in arrows_df['Clean_Action'].unique():
+                    sub_arrow = arrows_df[arrows_df['Clean_Action'] == act]
+                    if "Normal" in act: color, name = '#00ffcc', "تمريرة عادية"
+                    elif "Progressive" in act: color, name = '#ff9900', "تمريرة تقديمية"
+                    elif "Through" in act: color, name = '#cc00ff', "ثرو باص"
+                    elif "Cross" in act: color, name = '#ffff00', "عرضية"
+                    else: color, name = '#00f0ff', "ركلة ركنية"
+                    
+                    has_end = sub_arrow['x2_scaled'].notna() & (sub_arrow['x2_scaled'] != 0) & (sub_arrow['x2_scaled'] != sub_arrow['x_scaled'])
+                    arrow_plots = sub_arrow[has_end]
+                    dot_plots = sub_arrow[~has_end]
+                    
+                    if not arrow_plots.empty:
+                        pitch.arrows(arrow_plots['x_scaled'], arrow_plots['y_scaled'], arrow_plots['x2_scaled'], arrow_plots['y2_scaled'], width=2, headwidth=3, headlength=3, color=color, alpha=0.8, ax=ax)
+                        pitch.scatter(arrow_plots['x_scaled'], arrow_plots['y_scaled'], color=color, s=40, edgecolors='#ffffff', zorder=3, ax=ax)
+                    if not dot_plots.empty:
+                        pitch.scatter(dot_plots['x_scaled'], dot_plots['y_scaled'], color=color, s=60, edgecolors='#ffffff', zorder=3, ax=ax)
+                        
+                    # تصحيح وإضافة السهم للدليل التكتيكي بدون تكرار وبطريقة سليمة
+                    if name not in drawn_arrow_names:
+                        legend_elements.append(Line2D([0], [0], color=color, lw=2, label=name))
+                        drawn_arrow_names.add(name)
+
+            # رسم الأحداث الثابتة والدفاعية
+            if not dots_df.empty:
+                drawn_dots_actions = set()
+                for idx, row in dots_df.iterrows():
+                    act_name = row['Clean_Action']
+                    if "Goal" in act_name: m_color, m_style, m_size, label_text = '#00ff00', '*', 260, "هدف"
+                    elif "Shot" in act_name: m_color, m_style, m_size, label_text = '#ff3366', 'o', 130, "تسديدة"
+                    elif "Dribble" in act_name: m_color, m_style, m_size, label_text = '#ffff00', 'P', 120, "مراوغة"
+                    elif "Tackle" in act_name: m_color, m_style, m_size, label_text = '#ff00ff', 'X', 130, "تدخل / افتكاك"
+                    elif "Clearance" in act_name: m_color, m_style, m_size, label_text = '#ffffff', 's', 110, "تشتيت"
+                    elif "Aerial" in act_name: m_color, m_style, m_size, label_text = '#3399ff', '^', 130, "صراع هوائي"
+                    elif "Ground" in act_name: m_color, m_style, m_size, label_text = '#8B4513', 'v', 120, "صراع أرضي"
+                    elif "Foul" in act_name: m_color, m_style, m_size, label_text = '#ffcc00', 'd', 110, "فاول"
+                    else: m_color, m_style, m_size, label_text = '#00ffcc', 'h', 120, "ضغط عكسي"
+                        
+                    pitch.scatter(row['x_scaled'], row['y_scaled'], color=m_color, s=m_size, marker=m_style, edgecolors='#1a1a1a', zorder=4, ax=ax)
+                    
+                    if label_text not in drawn_dots_actions:
+                        legend_elements.append(Line2D([0], [0], marker=m_style, color='none', markerfacecolor=m_color, markeredgecolor='#1a1a1a', markersize=10, label=label_text))
+                        drawn_dots_actions.add(label_text)
+
+            # عرض الدليل أسفل الملعب بشكل منظم واحترافي
+            if legend_elements:
+                ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.02),
+                          ncol=4, fancybox=True, shadow=True, facecolor='#222222', edgecolor='#7c7c7c', 
+                          labelcolor='#ffffff', fontsize=11)
+            
+            plot_placeholder.pyplot(fig)
+            st.success(f"📋 تم تحليل خريطة الفاعلية لـ ({player_display_name}) وعرض {len(filtered_df)} حدث بنجاح.")
+        else:
+            plot_placeholder.pyplot(fig)
+            st.warning("الملعب فارغ، يرجى تفعيل أكشن واحد على الأقل من القائمة الجانبية.")
+        plt.close(fig)
+    else:
+        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
+else:
+    st.info("💡 الملعب جاهز؛ يرجى رفع ملف الإكسيل أو CSV من القائمة الجانبية لبدء التحليل التكتيكي المتقدم.")
