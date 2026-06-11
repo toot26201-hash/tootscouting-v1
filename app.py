@@ -151,4 +151,9 @@ if uploaded_file is not None:
             plot_placeholder.pyplot(fig)
             st.success(f"تم عرض {len(filtered_df)} حدث تكتيكي بنجاح.")
         else:
-            st.warning("تم تصفية البيانات
+            st.warning("تم تصفية البيانات ولم يتبقَ أحداث لعرضها بناءً على خياراتك الحالي.")
+        plt.close(fig)
+    else:
+        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start). يرجى التأكد من أسماء الأعمدة بالملف.")
+else:
+    st.info("يرجى رفع ملف البيانات من القائمة الجانبية لبدء إسقاط الأحداث الهجومية والدفاعية.")
