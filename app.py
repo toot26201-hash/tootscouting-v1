@@ -47,7 +47,7 @@ if uploaded_file is not None:
         valid_df['Action'] = valid_df['Action'].astype(str).str.strip()
         valid_df['Tags'] = valid_df['Tags'].fillna('').astype(str)
         
-        # حساب المسافة التقدمية للأمام (الفرق على محور X)
+        # حساب المسافة التقدمية للأمام
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
         # -------------------------------------------------------------
@@ -81,10 +81,8 @@ if uploaded_file is not None:
         if selected_player != "كل اللاعبين":
             filtered_df = filtered_df[filtered_df['Player'] == selected_player]
 
-        # تحديد اللون الافتراضي (فسفوري)
         color_theme = '#00ffcc'
         
-        # شروط الفلترة لكل خيار
         if selected_action == "تمريرة عادية (Normal Pass)":
             filtered_df = filtered_df[
                 filtered_df['Action'].str.contains('Pass', case=False) & 
@@ -133,7 +131,7 @@ if uploaded_file is not None:
             color_theme = '#00ff00'
 
         # -------------------------------------------------------------
-        # 7. رسم الملعب التكتيكي (تم تقفيل الأقواس بشكل كامل هنا)
+        # 7. رسم الملعب التكتيكي (صياغة مبسطة ومحمية من الـ SyntaxError)
         # -------------------------------------------------------------
         st.subheader(f"🏟️ خريطة الفاعلية التكتيكية: {selected_action}")
         
@@ -147,36 +145,25 @@ if uploaded_file is not None:
             is_movement = any(x in selected_action for x in movement_actions) or (selected_action == "كل التمريرات والأحداث")
             
             if is_movement:
+                # فصلنا الداتا اللي فيها أسهم واضحة
                 has_end = filtered_df['x2_scaled'].notna() & filtered_df['y2_scaled'].notna() & (filtered_df['x2_scaled'] != 0)
                 arrows_df = filtered_df[has_end]
                 dots_df = filtered_df[~has_end]
                 
                 if not arrows_df.empty:
-                    pitch.arrows(
-                        arrows_df['x_scaled'], arrows_df['y_scaled'],
-                        arrows_df['x2_scaled'], arrows_df['y2_scaled'],
-                        width=2, headwidth=3, headlength=3,
-                        color=color_theme, alpha=0.8, ax=ax
-                    )
-                    pitch.scatter(
-                        arrows_df['x_scaled'], arrows_df['y_scaled'],
-                        color=color_theme, s=40, edgecolors='#ffffff', zorder=3, ax=ax
-                    )
+                    pitch.arrows(arrows_df['x_scaled'], arrows_df['y_scaled'], arrows_df['x2_scaled'], arrows_df['y2_scaled'], width=2, headwidth=3, headlength=3, color=color_theme, alpha=0.8, ax=ax)
+                    pitch.scatter(arrows_df['x_scaled'], arrows_df['y_scaled'], color=color_theme, s=40, edgecolors='#ffffff', zorder=3, ax=ax)
                 
                 if not dots_df.empty:
-                    pitch.scatter(
-                        dots_df['x_scaled'], dots_df['y_scaled'],
-                        color=color_theme, s=60, edgecolors='#ffffff', zorder=3, ax=ax
-                    )
+                    pitch.scatter(dots_df['x_scaled'], dots_df['y_scaled'], color=color_theme, s=60, edgecolors='#ffffff', zorder=3, ax=ax)
             else:
-                # تم تصحيح وإغلاق قوس الدالة هنا تماماً لتفادي الـ SyntaxError
-                marker_type = '*' if "Goal" in selected_action else 'o'
-                size_type = 200 if "Goal" in selected_action else 100
+                # للتسديدات والأهداف: تحديد الماركر والحجم في متغيرات منفصلة تماماً
+                is_goal = "Goal" in selected_action
                 
-                pitch.scatter(
-                    filtered_df['x_scaled'], filtered_df['y_scaled'],
-                    color=color_theme, s=size_type, marker=marker_type, edgecolors='#ffffff', zorder=4, ax=ax
-                )
+                if is_goal:
+                    pitch.scatter(filtered_df['x_scaled'], filtered_df['y_scaled'], color=color_theme, s=200, marker='*', edgecolors='#ffffff', zorder=4, ax=ax)
+                else:
+                    pitch.scatter(filtered_df['x_scaled'], filtered_df['y_scaled'], color=color_theme, s=100, marker='o', edgecolors='#ffffff', zorder=4, ax=ax)
             
             st.pyplot(fig)
             st.success(f"تم العثور على {len(filtered_df)} حدث وعرضه بنجاح.")
