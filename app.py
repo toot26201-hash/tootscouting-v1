@@ -51,7 +51,7 @@ if uploaded_file is not None:
         valid_df['prog_distance'] = valid_df['x2_scaled'] - valid_df['x_scaled']
 
         # -------------------------------------------------------------
-        # 5. القوائم المنسدلة الكاملة (كل طلباتك هنا)
+        # 5. القوائم المنسدلة الكاملة
         # -------------------------------------------------------------
         st.subheader("🎯 فلاتر التحليل الهجومي المتقدم")
         col1, col2 = st.columns(2)
@@ -92,7 +92,7 @@ if uploaded_file is not None:
                 ~filtered_df['Tags'].str.contains('through|key', case=False) &
                 (filtered_df['prog_distance'] < 12)
             ]
-            color_theme = '#00ffcc' # فسفوري
+            color_theme = '#00ffcc'
             
         elif selected_action == "تمريرة تقديمية (Progressive Pass)":
             filtered_df = filtered_df[
@@ -100,22 +100,22 @@ if uploaded_file is not None:
                 ~filtered_df['Action'].str.contains('Corner', case=False) &
                 (filtered_df['prog_distance'] >= 12)
             ]
-            color_theme = '#ff9900' # برتقالي ناري
+            color_theme = '#ff9900'
             
         elif selected_action == "ثرو باص (Through Ball)":
             filtered_df = filtered_df[
                 filtered_df['Action'].str.contains('Through|Key|ثرو', case=False) | 
                 filtered_df['Tags'].str.contains('through|key|Behind', case=False)
             ]
-            color_theme = '#cc00ff' # بنفسجي
+            color_theme = '#cc00ff'
             
         elif selected_action == "عرضية (Cross)":
             filtered_df = filtered_df[filtered_df['Action'].str.contains('Cross|عرضية', case=False)]
-            color_theme = '#ffff00' # أصفر للعرضيات
+            color_theme = '#ffff00'
             
         elif selected_action == "كورنر (Corner)":
             filtered_df = filtered_df[filtered_df['Action'].str.contains('Corner|كورنر|ركنية', case=False)]
-            color_theme = '#00f0ff' # أزرق سماوي
+            color_theme = '#00f0ff'
             
         elif selected_action == "تسديدة (Shot)":
             filtered_df = filtered_df[
@@ -123,38 +123,34 @@ if uploaded_file is not None:
                 ~filtered_df['Tags'].str.contains('goal|Goal', case=False) &
                 ~filtered_df['Action'].str.contains('Goal', case=False)
             ]
-            color_theme = '#ff3366' # أحمر للتسديدات
+            color_theme = '#ff3366'
             
         elif selected_action == "هدف (Goal)":
             filtered_df = filtered_df[
                 filtered_df['Action'].str.contains('Goal|هدف', case=False) | 
                 filtered_df['Tags'].str.contains('goal', case=False)
             ]
-            color_theme = '#00ff00' # أخضر صريح للأهداف
+            color_theme = '#00ff00'
 
         # -------------------------------------------------------------
-        # 7. رسم الملعب التكتيكي (يُرسم دائماً وتظهر الأحداث فوقه)
+        # 7. رسم الملعب التكتيكي (تم تقفيل الأقواس بشكل كامل هنا)
         # -------------------------------------------------------------
         st.subheader(f"🏟️ خريطة الفاعلية التكتيكية: {selected_action}")
         
-        # توليد خطوط الملعب بشكل ثابت وصحيح أولاً لضمان الظهور
         fig, ax = plt.subplots(figsize=(12, 8))
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
         
         if not filtered_df.empty:
-            # نحدد الأحداث التي تحتاج سهم حركة (تمريرات، عرضيات، كورنر)
-            movement_actions = ["كل التمريرات", "Normal Pass", "Progressive Pass", "Through Ball", "Cross", "Corner"]
+            movement_actions = ["Normal Pass", "Progressive Pass", "Through Ball", "Cross", "Corner"]
             is_movement = any(x in selected_action for x in movement_actions) or (selected_action == "كل التمريرات والأحداث")
             
             if is_movement:
-                # التحقق من وجود إحداثيات نهاية صالحة لرسم السهم
                 has_end = filtered_df['x2_scaled'].notna() & filtered_df['y2_scaled'].notna() & (filtered_df['x2_scaled'] != 0)
                 arrows_df = filtered_df[has_end]
                 dots_df = filtered_df[~has_end]
                 
-                # رسم الأسهم للتمريرات والعرضيات
                 if not arrows_df.empty:
                     pitch.arrows(
                         arrows_df['x_scaled'], arrows_df['y_scaled'],
@@ -167,16 +163,32 @@ if uploaded_file is not None:
                         color=color_theme, s=40, edgecolors='#ffffff', zorder=3, ax=ax
                     )
                 
-                # إذا كان هناك أحداث حركة لكن بدون إحداثيات نهاية بالملف
                 if not dots_df.empty:
                     pitch.scatter(
                         dots_df['x_scaled'], dots_df['y_scaled'],
                         color=color_theme, s=60, edgecolors='#ffffff', zorder=3, ax=ax
                     )
             else:
-                # للتسديدات والأهداف: رسم مكان الحدث بشكل مميز وثابت
+                # تم تصحيح وإغلاق قوس الدالة هنا تماماً لتفادي الـ SyntaxError
                 marker_type = '*' if "Goal" in selected_action else 'o'
                 size_type = 200 if "Goal" in selected_action else 100
                 
                 pitch.scatter(
-                    filtered_df['x_scaled'], filtered_df
+                    filtered_df['x_scaled'], filtered_df['y_scaled'],
+                    color=color_theme, s=size_type, marker=marker_type, edgecolors='#ffffff', zorder=4, ax=ax
+                )
+            
+            st.pyplot(fig)
+            st.success(f"تم العثور على {len(filtered_df)} حدث وعرضه بنجاح.")
+            plt.close(fig)
+            
+        else:
+            st.pyplot(fig)
+            st.warning(f"الملعب معروض بالأعلى، لكن لا توجد بيانات مسجلة في هذا الملف تحت تصنيف: {selected_action}")
+            plt.close(fig)
+
+    else:
+        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
+
+else:
+    st.info("يرجى رفع ملف البيانات لبدء التحليل الهجومي المتقدم.")
