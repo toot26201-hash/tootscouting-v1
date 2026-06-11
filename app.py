@@ -131,7 +131,7 @@ if uploaded_file is not None:
             color_theme = '#00ff00'
 
         # -------------------------------------------------------------
-        # 7. رسم الملعب التكتيكي (صياغة مبسطة ومحمية من الـ SyntaxError)
+        # 7. رسم الملعب التكتيكي (تمت إعادة الصياغة السطرية لمنع الـ SyntaxError)
         # -------------------------------------------------------------
         st.subheader(f"🏟️ خريطة الفاعلية التكتيكية: {selected_action}")
         
@@ -145,7 +145,6 @@ if uploaded_file is not None:
             is_movement = any(x in selected_action for x in movement_actions) or (selected_action == "كل التمريرات والأحداث")
             
             if is_movement:
-                # فصلنا الداتا اللي فيها أسهم واضحة
                 has_end = filtered_df['x2_scaled'].notna() & filtered_df['y2_scaled'].notna() & (filtered_df['x2_scaled'] != 0)
                 arrows_df = filtered_df[has_end]
                 dots_df = filtered_df[~has_end]
@@ -157,10 +156,8 @@ if uploaded_file is not None:
                 if not dots_df.empty:
                     pitch.scatter(dots_df['x_scaled'], dots_df['y_scaled'], color=color_theme, s=60, edgecolors='#ffffff', zorder=3, ax=ax)
             else:
-                # للتسديدات والأهداف: تحديد الماركر والحجم في متغيرات منفصلة تماماً
-                is_goal = "Goal" in selected_action
-                
-                if is_goal:
+                # كتابة مخرجات الـ Scatter في سطر واحد صريح ومحمي لمنع أي قطع في الأقواس
+                if "Goal" in selected_action:
                     pitch.scatter(filtered_df['x_scaled'], filtered_df['y_scaled'], color=color_theme, s=200, marker='*', edgecolors='#ffffff', zorder=4, ax=ax)
                 else:
                     pitch.scatter(filtered_df['x_scaled'], filtered_df['y_scaled'], color=color_theme, s=100, marker='o', edgecolors='#ffffff', zorder=4, ax=ax)
