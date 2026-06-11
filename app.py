@@ -109,4 +109,53 @@ if uploaded_file is not None:
             color_theme = '#ffff00'
 
         # -------------------------------------------------------------
-        # 7. رسم المل
+        # 7. رسم الملعب التكتيكي (يُرسم دائماً وتظهر الأحداث فوقه)
+        # -------------------------------------------------------------
+        st.subheader(f"🏟️ خريطة الفاعلية")
+        
+        # إنشاء الرسم البياني للملعب (يتم إنشاؤه في كل الأحوال حتى لو البيانات فارغة)
+        pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
+        fig, ax = pitch.draw(figsize=(12, 8))
+        fig.patch.set_facecolor('#1a1a1a')
+        
+        if not filtered_df.empty:
+            # التحقق من وجود إحداثيات نهاية لرسم الأسهم (مثل التمريرات والعرضيات)
+            # إذا كانت إحداثيات النهاية موجودة وتختلف عن البداية، نرسم سهماً
+            has_end = filtered_df['x2_scaled'].notna() & filtered_df['y2_scaled'].notna() & (filtered_df['x2_scaled'] != 0)
+            
+            arrows_df = filtered_df[has_end]
+            dots_df = filtered_df[~has_end]
+            
+            # 1. رسم الأسهم للأحداث المتحركة (تمريرات، عرضيات)
+            if not arrows_df.empty:
+                pitch.arrows(
+                    arrows_df['x_scaled'], arrows_df['y_scaled'],
+                    arrows_df['x2_scaled'], arrows_df['y2_scaled'],
+                    width=2, headwidth=3, headlength=3,
+                    color=color_theme, alpha=0.8, ax=ax
+                )
+                pitch.scatter(
+                    arrows_df['x_scaled'], arrows_df['y_scaled'],
+                    color=color_theme, s=40, edgecolors='#ffffff', zorder=3, ax=ax
+                )
+            
+            # 2. رسم النقاط الثابتة (تسديدات، أهداف، أحداث بدون إحداثيات نهاية)
+            if not dots_df.empty:
+                pitch.scatter(
+                    dots_df['x_scaled'], dots_df['y_scaled'],
+                    color='#ff3366', s=100, marker='o', edgecolors='#ffffff', zorder=4, ax=ax
+                )
+                
+            st.pyplot(fig)
+            st.success(f"تم عرض {len(filtered_df)} حدث على الملعب بنجاح.")
+            
+        else:
+            # في حال كانت الفلترة فارغة، يُرسم الملعب فارغاً مع رسالة تحذيرية بدلاً من الاختفاء
+            st.pyplot(fig)
+            st.warning(f"الملعب معروض بالأعلى، لكن لا توجد أحداث مطابقة للفلتر الحالي: [{selected_main}] لهذا اللاعب.")
+
+    else:
+        st.error("عذراً، لم نتمكن من العثور على أعمدة الإحداثيات المطلوبة (X Start, Y Start).")
+
+else:
+    st.info("يرجى رفع ملف البيانات لبدء التحليل الهجومي.")
