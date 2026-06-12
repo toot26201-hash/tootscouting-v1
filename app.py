@@ -50,23 +50,7 @@ if uploaded_file is not None:
         temp_df = df if selected_player == "All Players" else df[df['Player'].astype(str) == selected_player]
         filtered_df = temp_df[temp_df['Type'].isin(selected_actions)]
 
-        # استخدام st.columns للفصل بين الملاعب
         col1, col2 = st.columns(2)
-
-        configs = {
-            "Pass": {"color": "#00ffcc", "marker": None, "is_arrow": True},
-            "Aerial Duel": {"color": "#3399ff", "marker": "^"},
-            "Tackle": {"color": "#ff00ff", "marker": "X"},
-            "Shot": {"color": "#00ff00", "marker": "*"},
-            "Clearance": {"color": "#ffffff", "marker": "s"},
-            "Interception": {"color": "#0000FF", "marker": "o"},
-            "Ground Duel": {"color": "#8B4513", "marker": "v"},
-            "Foul": {"color": "#ffcc00", "marker": "d"},
-            "Counterpress": {"color": "#ff3300", "marker": "h"},
-            "Dribble": {"color": "#A020F0", "marker": None, "is_arrow": True},
-            "Miscontrol": {"color": "#8B0000", "marker": "x"},
-            "Progressive Run": {"color": "#32CD32", "marker": None, "is_arrow": True}
-        }
 
         # --- ملعب الأكشنات (في العمود الأول) ---
         with col1:
@@ -76,16 +60,18 @@ if uploaded_file is not None:
             pitch.draw(ax=ax1)
             fig1.patch.set_facecolor('#1a1a1a')
             
-            for act in selected_actions:
-                if act not in configs: continue
-                cfg = configs[act]
-                subset = filtered_df[filtered_df['Type'] == act]
-                if subset.empty: continue
-                if cfg.get("is_arrow"):
-                    pitch.arrows(subset['x_scaled'], subset['y_scaled'], subset['x2_scaled'], subset['y2_scaled'], color=cfg['color'], width=2, ax=ax1)
+            for index, row in filtered_df.iterrows():
+                # رسم الأكشن
+                if 'pass' in row['Type'].lower() or 'dribble' in row['Type'].lower() or 'progressive' in row['Type'].lower():
+                    pitch.arrows(row['x_scaled'], row['y_scaled'], row['x2_scaled'], row['y2_scaled'], color='#00ffcc', width=2, ax=ax1)
                 else:
-                    pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=cfg['color'] if act != "Interception" else 'none', 
-                                  edgecolors=cfg['color'] if act == "Interception" else None, marker=cfg['marker'], s=150, ax=ax1)
+                    color = '#0000FF' if row['Type'] == "Interception" else '#ffffff'
+                    pitch.scatter(row['x_scaled'], row['y_scaled'], color=color if row['Type'] != "Interception" else 'none', 
+                                  edgecolors=color if row['Type'] == "Interception" else None, s=150, ax=ax1)
+                
+                # إضافة اسم اللاعب بجانب كل أكشن
+                ax1.text(row['x_scaled'], row['y_scaled'] + 2, str(row['Player']), color='white', 
+                         fontsize=8, ha='center', alpha=0.7)
             st.pyplot(fig1)
 
         # --- ملعب الخريطة الحرارية (في العمود الثاني) ---
