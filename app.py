@@ -30,7 +30,7 @@ if uploaded_file is not None:
         df['x_scaled'], df['y_scaled'] = df['x1'] * 120, df['y1'] * 80
         df['x2_scaled'], df['y2_scaled'] = df['x2'] * 120, df['y2'] * 80
         
-        # 3. التصنيف المحدث ليشمل Extra Actions
+        # 3. التصنيف
         conds = [
             df['Action'].str.contains('Pass|تمرير', case=False),
             df['Action'].str.contains('Aerial|Air|هوائي', case=False),
@@ -52,7 +52,6 @@ if uploaded_file is not None:
         st.sidebar.markdown("### 🏹 ACTIONS")
         selected_actions = st.sidebar.multiselect("Select Actions:", options=choices, default=choices)
         
-        # الفلترة
         temp_df = df if selected_player == "All Players" else df[df['Player'] == selected_player]
         filtered_df = temp_df[temp_df['Type'].isin(selected_actions)]
 
@@ -61,9 +60,9 @@ if uploaded_file is not None:
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
         
-        ax.text(60, 40, selected_player, color='#D4AF37', fontsize=50, fontweight='bold', ha='center', va='center', alpha=0.1)
+        ax.text(60, 40, selected_player, color='#D4AF37', fontsize=60, fontweight='bold', 
+                ha='center', va='center', alpha=0.1, zorder=1)
 
-        # تمت إضافة رموز Interception و Clearance المحدثة
         configs = {
             "Pass": {"color": "#00ffcc", "marker": None, "is_arrow": True},
             "Aerial Duel": {"color": "#3399ff", "marker": "^"},
@@ -73,7 +72,7 @@ if uploaded_file is not None:
             "Ground Duel": {"color": "#8B4513", "marker": "v"},
             "Foul": {"color": "#ffcc00", "marker": "d"},
             "Counterpress": {"color": "#ff3300", "marker": "h"},
-            "Interception": {"color": "#FFFF00", "marker": "P"}
+            "Interception": {"color": "#0000FF", "marker": "o"} # الأزرق ودائرة مفرغة
         }
 
         legend_elements = []
@@ -87,8 +86,13 @@ if uploaded_file is not None:
                 pitch.arrows(subset['x_scaled'], subset['y_scaled'], subset['x2_scaled'], subset['y2_scaled'], color=cfg['color'], width=2, ax=ax)
                 legend_elements.append(Line2D([0], [0], color=cfg['color'], lw=2, label=act))
             else:
-                pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=cfg['color'], marker=cfg['marker'], s=150, ax=ax)
-                legend_elements.append(Line2D([0], [0], marker=cfg['marker'], color='none', markerfacecolor=cfg['color'], label=act, markersize=10))
+                # منطق الدائرة المفرغة للـ Interception
+                if act == "Interception":
+                    pitch.scatter(subset['x_scaled'], subset['y_scaled'], facecolors='none', edgecolors=cfg['color'], marker=cfg['marker'], s=150, lw=2, ax=ax)
+                else:
+                    pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=cfg['color'], marker=cfg['marker'], s=150, ax=ax)
+                
+                legend_elements.append(Line2D([0], [0], marker=cfg['marker'], color='none', markeredgecolor=cfg['color'], markerfacecolor='none' if act=="Interception" else cfg['color'], label=act, markersize=10))
 
         ax.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=4, facecolor='#222222', labelcolor='white')
         plot_placeholder.pyplot(fig)
