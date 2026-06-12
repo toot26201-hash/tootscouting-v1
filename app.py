@@ -8,7 +8,7 @@ from mplsoccer import Pitch
 st.set_page_config(layout="wide")
 st.title("TootScouting - Advanced Match Analysis")
 
-# 2. تحميل البيانات
+# تحميل البيانات
 st.sidebar.header("📁 DATA LOAD & ANALYSIS")
 uploaded_file = st.sidebar.file_uploader("Upload Match Data (Excel or CSV)", type=["csv", "xlsx"])
 
@@ -47,25 +47,12 @@ if uploaded_file is not None:
         all_types = sorted(df['Type'].unique().tolist())
         selected_actions = st.sidebar.multiselect("Select Actions:", options=all_types, default=all_types)
         
-        st.sidebar.markdown("### 🗺️ DISPLAY OPTIONS")
-        show_heatmap = st.sidebar.checkbox("Show Heatmap in Separate Pitch", value=False)
-        
         temp_df = df if selected_player == "All Players" else df[df['Player'].astype(str) == selected_player]
         filtered_df = temp_df[temp_df['Type'].isin(selected_actions)]
 
-        # 5. الرسم
-        # ننشئ متغير لعدد الملاعب بناءً على اختيارك
-        num_plots = 2 if show_heatmap else 1
-        fig, axes = plt.subplots(1, num_plots, figsize=(12 * num_plots, 8))
-        if num_plots == 1: axes = [axes]
-        
-        pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
+        # استخدام st.columns للفصل بين الملاعب
+        col1, col2 = st.columns(2)
 
-        # ملعب الأكشنات (دائماً يظهر)
-        pitch.draw(ax=axes[0])
-        fig.patch.set_facecolor('#1a1a1a')
-        axes[0].set_title("Tactical Actions", color='white', fontsize=15)
-        
         configs = {
             "Pass": {"color": "#00ffcc", "marker": None, "is_arrow": True},
             "Aerial Duel": {"color": "#3399ff", "marker": "^"},
@@ -81,22 +68,33 @@ if uploaded_file is not None:
             "Progressive Run": {"color": "#32CD32", "marker": None, "is_arrow": True}
         }
 
-        for act in selected_actions:
-            if act not in configs: continue
-            cfg = configs[act]
-            subset = filtered_df[filtered_df['Type'] == act]
-            if subset.empty: continue
-            if cfg.get("is_arrow"):
-                pitch.arrows(subset['x_scaled'], subset['y_scaled'], subset['x2_scaled'], subset['y2_scaled'], color=cfg['color'], width=2, ax=axes[0])
-            else:
-                pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=cfg['color'] if act != "Interception" else 'none', 
-                              edgecolors=cfg['color'] if act == "Interception" else None, marker=cfg['marker'], s=150, ax=axes[0])
+        # --- ملعب الأكشنات (في العمود الأول) ---
+        with col1:
+            st.subheader("📍 Tactical Actions Map")
+            fig1, ax1 = plt.subplots(figsize=(10, 7))
+            pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
+            pitch.draw(ax=ax1)
+            fig1.patch.set_facecolor('#1a1a1a')
+            
+            for act in selected_actions:
+                if act not in configs: continue
+                cfg = configs[act]
+                subset = filtered_df[filtered_df['Type'] == act]
+                if subset.empty: continue
+                if cfg.get("is_arrow"):
+                    pitch.arrows(subset['x_scaled'], subset['y_scaled'], subset['x2_scaled'], subset['y2_scaled'], color=cfg['color'], width=2, ax=ax1)
+                else:
+                    pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=cfg['color'] if act != "Interception" else 'none', 
+                                  edgecolors=cfg['color'] if act == "Interception" else None, marker=cfg['marker'], s=150, ax=ax1)
+            st.pyplot(fig1)
 
-        # ملعب الخريطة الحرارية (يظهر عند التفعيل)
-        if show_heatmap and not filtered_df.empty:
-            pitch.draw(ax=axes[1])
-            axes[1].set_title("Activity Heatmap", color='white', fontsize=15)
-            pitch.kdeplot(filtered_df['x_scaled'], filtered_df['y_scaled'], ax=axes[1], fill=True, levels=100, cmap='inferno', alpha=0.6)
-
-        st.pyplot(fig)
-        plt.close(fig)
+        # --- ملعب الخريطة الحرارية (في العمود الثاني) ---
+        with col2:
+            st.subheader("🔥 Activity Heatmap")
+            fig2, ax2 = plt.subplots(figsize=(10, 7))
+            pitch.draw(ax=ax2)
+            fig2.patch.set_facecolor('#1a1a1a')
+            
+            if not filtered_df.empty:
+                pitch.kdeplot(filtered_df['x_scaled'], filtered_df['y_scaled'], ax=ax2, fill=True, levels=100, cmap='inferno', alpha=0.6)
+            st.pyplot(fig2)
