@@ -5,75 +5,69 @@ from matplotlib.lines import Line2D
 from mplsoccer import Pitch
 
 st.set_page_config(layout="wide")
-st.title("TootScouting - Advanced Tactical Analysis")
+st.title("TootScouting - Tactical Passing Analysis")
 
-# تحميل البيانات
 uploaded_file = st.sidebar.file_uploader("Upload Match Data (Excel/CSV)", type=["csv", "xlsx"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
     df.columns = df.columns.str.strip()
     df = df.rename(columns={'X Start': 'x1', 'Y Start': 'y1', 'X End': 'x2', 'Y End': 'y2'})
-    df['x_scaled'], df['y_scaled'] = df['x1'] * 120, df['y1'] * 80
+    df['x_scaled'], df['y_scaled'] = df['x1'] * 1.2, df['y1'] * 0.8
+    df['x2_scaled'], df['y2_scaled'] = df['x2'] * 1.2, df['y2'] * 0.8
 
-    # تصنيف دقيق يشمل أنواع اللمسات داخل الصندوق
-    def classify(row):
+    # تصنيف التمريرات بناءً على المنطقة
+    def classify_pass(row):
         val = str(row['Action']).lower()
+        if 'pass' not in val: return "Other"
+        
         x, y = row['x_scaled'], row['y_scaled']
-        in_box = (102 <= x <= 120) and (18 <= y <= 62)
         
-        if in_box:
-            if 'shot' in val or 'تسديد' in val: return "Shot (Box)"
-            if 'pass' in val or 'تمرير' in val: return "Pass (Box)"
-            if 'dribble' in val or 'مرواغة' in val: return "Dribble (Box)"
-            return "Touch (Box)" # لمسة عادية
+        # Zone 14: الوسط (X 80-100, Y 30-50)
+        if 80 <= x <= 100 and 30 <= y <= 50: return "Pass in Zone 14"
         
-        if 'cross' in val: return "Cross"
-        if 'corner' in val: return "Corner"
-        if (80 <= x <= 100) and (30 <= y <= 50): return "Zone 14"
-        return "Other"
+        # Half-Spaces: اليمين (Y 10-30) واليسار (Y 50-70) في الثلث الأخير (X > 80)
+        if x >= 80 and (10 <= y <= 30 or 50 <= y <= 70): return "Pass in Half-Space"
+        
+        return "Other Pass"
 
-    df['Type'] = df.apply(classify, axis=1)
+    df['Type'] = df.apply(classify_pass, axis=1)
+    
+    # فلترة التمريرات فقط
+    filtered_df = df[df['Type'] != "Other"]
 
-    # اختيار الأكشنات
-    selected_actions = st.sidebar.multiselect("Select Tactical Actions:", options=df['Type'].unique().tolist(), default=df['Type'].unique().tolist())
-    filtered_df = df[df['Type'].isin(selected_actions)]
-
-    # لوحة ألوان مميزة لكل نوع
-    colors = {
-        "Shot (Box)": "#FF0000",      # أحمر
-        "Pass (Box)": "#00FF00",      # أخضر
-        "Dribble (Box)": "#FF00FF",   # فوشيا
-        "Touch (Box)": "#FFFFFF",     # أبيض
-        "Cross": "#FF4500",           # برتقالي
-        "Corner": "#00BFFF",          # أزرق سماوي
-        "Zone 14": "#FFD700",         # ذهبي
-        "Other": "#808080"            # رمادي
+    # لوحة ألوان التمريرات
+    pass_colors = {
+        "Pass in Zone 14": "#FFD700",    # ذهبي
+        "Pass in Half-Space": "#00FF00", # أخضر
+        "Other Pass": "#FFFFFF"          # أبيض
     }
 
     col1, col2 = st.columns(2)
     
     with col1:
-        st.subheader("📍 Detailed Actions Map")
+        st.subheader("📍 Pass Map (Zone 14 & Half-Spaces)")
         fig1, ax1 = plt.subplots(figsize=(10, 7))
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
         pitch.draw(ax=ax1)
         fig1.patch.set_facecolor('#1a1a1a')
         
         legend_elements = []
-        for act in selected_actions:
-            subset = filtered_df[filtered_df['Type'] == act]
-            color = colors.get(act, "#FFFFFF")
-            # رسم الدوائر مع التسمية
-            pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=color, s=150, ax=ax1, alpha=0.8)
-            legend_elements.append(Line2D([0], [0], marker='o', color='none', markerfacecolor=color, markersize=12, label=act))
+        for p_type in ["Pass in Zone 14", "Pass in Half-Space"]:
+            subset = filtered_df[filtered_df['Type'] == p_type]
+            color = pass_colors.get(p_type)
             
-        # الدليل أسفل الملعب
-        ax1.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=4, facecolor='#222222', labelcolor='white')
+            # رسم التمريرات كأسهم
+            pitch.arrows(subset['x_scaled'], subset['y_scaled'], subset['x2_scaled'], subset['y2_scaled'], 
+                         color=color, width=2, headwidth=4, headlength=4, ax=ax1)
+            
+            legend_elements.append(Line2D([0], [0], color=color, lw=2, label=p_type))
+            
+        ax1.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=2, facecolor='#222222', labelcolor='white')
         st.pyplot(fig1)
 
     with col2:
-        st.subheader("🔥 Zone Heatmap")
+        st.subheader("🔥 Pass Heatmap")
         fig2, ax2 = plt.subplots(figsize=(10, 7))
         pitch.draw(ax=ax2)
         fig2.patch.set_facecolor('#1a1a1a')
