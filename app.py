@@ -1,64 +1,68 @@
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
+from matplotlib.lines import Line2D # استيراد المكتبة الضرورية للدليل
 from mplsoccer import Pitch
 
 st.set_page_config(layout="wide")
-st.title("TootScouting - Advanced Tactical Analysis")
+st.title("TootScouting - Tactical Advanced Analysis")
 
+# تحميل البيانات
 uploaded_file = st.sidebar.file_uploader("Upload Match Data (Excel/CSV)", type=["csv", "xlsx"])
 
 if uploaded_file:
     df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
     df.columns = df.columns.str.strip()
     df = df.rename(columns={'X Start': 'x1', 'Y Start': 'y1', 'X End': 'x2', 'Y End': 'y2'})
-    
-    # تحجيم الإحداثيات
-    df['x_scaled'], df['y_scaled'] = df['x1'] * 1.2, df['y1'] * 0.8
-    df['x2_scaled'], df['y2_scaled'] = df['x2'] * 1.2, df['y2'] * 0.8
+    df['x_scaled'], df['y_scaled'] = df['x1'] * 120, df['y1'] * 80
 
-    # تصنيف الأكشن
+    # دالة التصنيف
     def classify(row):
         val = str(row['Action']).lower()
         x, y = row['x_scaled'], row['y_scaled']
-        if (102 <= x <= 120) and (18 <= y <= 62): return "Box Touch"
+        if 'cross' in val: return "Cross"
+        if 'corner' in val: return "Corner"
+        if 'shot' in val: return "Shot"
+        if 'pass' in val and x >= 80: return "Final Third Entry"
+        if 'dribble' in val and (102 <= x <= 120): return "Box Entry"
+        if (102 <= x <= 120) and (18 <= y <= 62): return "Penalty Box"
         if (80 <= x <= 100) and (30 <= y <= 50): return "Zone 14"
-        return "Action"
+        return "Other"
 
     df['Type'] = df.apply(classify, axis=1)
 
-    # اختيار الأكشنات
-    all_actions = df['Type'].unique().tolist()
-    selected_actions = st.sidebar.multiselect("Select Tactical Actions:", options=all_actions, default=all_actions)
+    selected_actions = st.sidebar.multiselect("Select Tactical Actions:", options=df['Type'].unique().tolist(), default=df['Type'].unique().tolist())
     filtered_df = df[df['Type'].isin(selected_actions)]
 
     col1, col2 = st.columns(2)
     
-    # 1. ملعب الأسهم (يظهر كل الأكشنات كأسهم)
     with col1:
-        st.subheader("📍 Movement & Actions")
+        st.subheader("📍 Tactical Actions Map")
         fig1, ax1 = plt.subplots(figsize=(10, 7))
         pitch = Pitch(pitch_type='statsbomb', pitch_color='#1a1a1a', line_color='#7c7c7c')
         pitch.draw(ax=ax1)
         fig1.patch.set_facecolor('#1a1a1a')
         
-        for _, row in filtered_df.iterrows():
-            pitch.arrows(row['x_scaled'], row['y_scaled'], row['x2_scaled'], row['y2_scaled'], 
-                         color='#00ffcc', width=2, headwidth=4, headlength=4, ax=ax1)
+        # قاموس الألوان
+        colors = {"Penalty Box": "#32CD32", "Zone 14": "#FFD700", "Cross": "#FF4500", 
+                  "Corner": "#00BFFF", "Shot": "#FF0000", "Other": "#FFFFFF", "Final Third Entry": "#8A2BE2", "Box Entry": "#FF69B4"}
+        
+        legend_elements = []
+        for act in selected_actions:
+            subset = filtered_df[filtered_df['Type'] == act]
+            color = colors.get(act, "#FFFFFF")
+            pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=color, s=150, ax=ax1)
+            # إضافة العنصر للدليل
+            legend_elements.append(Line2D([0], [0], marker='o', color='w', markerfacecolor=color, markersize=10, label=act))
+            
+        ax1.legend(handles=legend_elements, loc='upper center', bbox_to_anchor=(0.5, -0.05), ncol=4, facecolor='#222222', labelcolor='white')
         st.pyplot(fig1)
 
-    # 2. ملعب اللمسات (دوائر للمناطق الخاصة)
     with col2:
-        st.subheader("🔥 Key Zones Touches")
+        st.subheader("🔥 Zone Heatmap")
         fig2, ax2 = plt.subplots(figsize=(10, 7))
         pitch.draw(ax=ax2)
         fig2.patch.set_facecolor('#1a1a1a')
-        
-        for act in ["Box Touch", "Zone 14"]:
-            if act in selected_actions:
-                subset = filtered_df[filtered_df['Type'] == act]
-                color = '#FFD700' if act == "Zone 14" else '#FF4500'
-                pitch.scatter(subset['x_scaled'], subset['y_scaled'], color=color, s=200, edgecolors='white', ax=ax2, label=act)
-        
-        ax2.legend(loc='upper right', facecolor='#222222', labelcolor='white')
+        if not filtered_df.empty:
+            pitch.kdeplot(filtered_df['x_scaled'], filtered_df['y_scaled'], ax=ax2, fill=True, levels=100, cmap='inferno', alpha=0.6)
         st.pyplot(fig2)
