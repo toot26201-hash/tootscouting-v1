@@ -23,34 +23,37 @@ uploaded_file = st.sidebar.file_uploader("Upload Match Data (Excel or CSV)", typ
 
 if uploaded_file is not None:
     df = pd.read_csv(uploaded_file) if uploaded_file.name.endswith('.csv') else pd.read_excel(uploaded_file)
+    # تنظيف أسماء الأعمدة والأكشن
     df.columns = df.columns.str.strip()
+    df['Action'] = df['Action'].astype(str).str.strip()
     df = df.rename(columns={'X Start': 'x1', 'Y Start': 'y1', 'X End': 'x2', 'Y End': 'y2'})
     
     if all(col in df.columns for col in ['x1', 'y1', 'x2', 'y2']):
         df['x_scaled'], df['y_scaled'] = df['x1'] * 120, df['y1'] * 80
         df['x2_scaled'], df['y2_scaled'] = df['x2'] * 120, df['y2'] * 80
         
-        # 3. التصنيف
-        conds = [
-            df['Action'].str.contains('Pass|تمرير', case=False),
-            df['Action'].str.contains('Aerial|Air|هوائي', case=False),
-            df['Action'].str.contains('Tackle|تدخل', case=False),
-            df['Action'].str.contains('Shot|تسديد', case=False),
-            df['Action'].str.contains('Clearance|تشتيت|تخليص', case=False),
-            df['Action'].str.contains('Ground|أرضي', case=False),
-            df['Action'].str.contains('Foul|خطأ', case=False),
-            df['Action'].str.contains('Counter|ضغط', case=False),
-            df['Action'].str.contains('Interception|اعتراض|قطع', case=False)
-        ]
-        choices = ["Pass", "Aerial Duel", "Tackle", "Shot", "Clearance", "Ground Duel", "Foul", "Counterpress", "Interception"]
-        df['Type'] = np.select(conds, choices, default="Other")
+        # 3. تصنيف مرن جداً (لا يهم مسمى الأكشن في الإكسيل طالما يحتوي على الكلمة)
+        def classify(val):
+            val = val.lower()
+            if 'pass' in val or 'تمرير' in val: return "Pass"
+            if 'shot' in val or 'تسديد' in val: return "Shot"
+            if 'tackle' in val or 'تدخل' in val: return "Tackle"
+            if 'clearance' in val or 'تشتيت' in val or 'تخليص' in val: return "Clearance"
+            if 'interception' in val or 'قطع' in val or 'اعتراض' in val: return "Interception"
+            if 'aerial' in val or 'هوائي' in val: return "Aerial Duel"
+            if 'ground' in val or 'أرضي' in val: return "Ground Duel"
+            if 'foul' in val or 'خطأ' in val: return "Foul"
+            if 'counter' in val or 'ضغط' in val: return "Counterpress"
+            return "Other"
 
-        # 4. اختيار اللاعبين والأكشن
+        df['Type'] = df['Action'].apply(classify)
+
+        # 4. الفلترة
         players_list = ["All Players"] + sorted(df['Player'].dropna().unique().tolist())
         selected_player = st.sidebar.selectbox("👤 FILTER BY PLAYER:", players_list)
         
-        st.sidebar.markdown("### 🏹 ACTIONS")
-        selected_actions = st.sidebar.multiselect("Select Actions:", options=choices, default=choices)
+        all_types = sorted(df['Type'].unique().tolist())
+        selected_actions = st.sidebar.multiselect("Select Actions:", options=all_types, default=all_types)
         
         temp_df = df if selected_player == "All Players" else df[df['Player'] == selected_player]
         filtered_df = temp_df[temp_df['Type'].isin(selected_actions)]
@@ -60,9 +63,11 @@ if uploaded_file is not None:
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
         
+        # العلامة المائية لاسم اللاعب
         ax.text(60, 40, selected_player, color='#D4AF37', fontsize=60, fontweight='bold', 
                 ha='center', va='center', alpha=0.1, zorder=1)
 
+        # إعدادات الأشكال والألوان
         configs = {
             "Pass": {"color": "#00ffcc", "marker": None, "is_arrow": True},
             "Aerial Duel": {"color": "#3399ff", "marker": "^"},
@@ -72,7 +77,7 @@ if uploaded_file is not None:
             "Ground Duel": {"color": "#8B4513", "marker": "v"},
             "Foul": {"color": "#ffcc00", "marker": "d"},
             "Counterpress": {"color": "#ff3300", "marker": "h"},
-            "Interception": {"color": "#0000FF", "marker": "o"} # الأزرق ودائرة مفرغة
+            "Interception": {"color": "#0000FF", "marker": "o"} 
         }
 
         legend_elements = []
@@ -82,11 +87,12 @@ if uploaded_file is not None:
             subset = filtered_df[filtered_df['Type'] == act]
             if subset.empty: continue
             
+            # رسم الأكشن
             if cfg.get("is_arrow"):
                 pitch.arrows(subset['x_scaled'], subset['y_scaled'], subset['x2_scaled'], subset['y2_scaled'], color=cfg['color'], width=2, ax=ax)
                 legend_elements.append(Line2D([0], [0], color=cfg['color'], lw=2, label=act))
             else:
-                # منطق الدائرة المفرغة للـ Interception
+                # لو هو Interception نرسمه دائرة زرقاء مفرغة
                 if act == "Interception":
                     pitch.scatter(subset['x_scaled'], subset['y_scaled'], facecolors='none', edgecolors=cfg['color'], marker=cfg['marker'], s=150, lw=2, ax=ax)
                 else:
