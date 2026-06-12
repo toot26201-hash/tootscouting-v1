@@ -30,25 +30,25 @@ if uploaded_file is not None:
         df['x_scaled'], df['y_scaled'] = df['x1'] * 120, df['y1'] * 80
         df['x2_scaled'], df['y2_scaled'] = df['x2'] * 120, df['y2'] * 80
         
-        # التصنيف (مع إضافة الالتحام الهوائي)
+        # 3. التصنيف المحدث ليشمل Extra Actions
         conds = [
             df['Action'].str.contains('Pass|تمرير', case=False),
             df['Action'].str.contains('Aerial|Air|هوائي', case=False),
             df['Action'].str.contains('Tackle|تدخل', case=False),
             df['Action'].str.contains('Shot|تسديد', case=False),
-            df['Action'].str.contains('Clearance|تشتيت', case=False),
+            df['Action'].str.contains('Clearance|تشتيت|تخليص', case=False),
             df['Action'].str.contains('Ground|أرضي', case=False),
             df['Action'].str.contains('Foul|خطأ', case=False),
-            df['Action'].str.contains('Counter|ضغط', case=False)
+            df['Action'].str.contains('Counter|ضغط', case=False),
+            df['Action'].str.contains('Interception|اعتراض|قطع', case=False)
         ]
-        choices = ["Pass", "Aerial Duel", "Tackle", "Shot", "Clearance", "Ground Duel", "Foul", "Counterpress"]
+        choices = ["Pass", "Aerial Duel", "Tackle", "Shot", "Clearance", "Ground Duel", "Foul", "Counterpress", "Interception"]
         df['Type'] = np.select(conds, choices, default="Other")
 
-        # 3. اختيار اللاعبين
+        # 4. اختيار اللاعبين والأكشن
         players_list = ["All Players"] + sorted(df['Player'].dropna().unique().tolist())
         selected_player = st.sidebar.selectbox("👤 FILTER BY PLAYER:", players_list)
         
-        # 4. اختيار الأكشن
         st.sidebar.markdown("### 🏹 ACTIONS")
         selected_actions = st.sidebar.multiselect("Select Actions:", options=choices, default=choices)
         
@@ -61,9 +61,9 @@ if uploaded_file is not None:
         pitch.draw(ax=ax)
         fig.patch.set_facecolor('#1a1a1a')
         
-        # اسم اللاعب في المنتصف
         ax.text(60, 40, selected_player, color='#D4AF37', fontsize=50, fontweight='bold', ha='center', va='center', alpha=0.1)
 
+        # تمت إضافة رموز Interception و Clearance المحدثة
         configs = {
             "Pass": {"color": "#00ffcc", "marker": None, "is_arrow": True},
             "Aerial Duel": {"color": "#3399ff", "marker": "^"},
@@ -72,11 +72,13 @@ if uploaded_file is not None:
             "Clearance": {"color": "#ffffff", "marker": "s"},
             "Ground Duel": {"color": "#8B4513", "marker": "v"},
             "Foul": {"color": "#ffcc00", "marker": "d"},
-            "Counterpress": {"color": "#ff3300", "marker": "h"}
+            "Counterpress": {"color": "#ff3300", "marker": "h"},
+            "Interception": {"color": "#FFFF00", "marker": "P"}
         }
 
         legend_elements = []
         for act in selected_actions:
+            if act not in configs: continue
             cfg = configs[act]
             subset = filtered_df[filtered_df['Type'] == act]
             if subset.empty: continue
